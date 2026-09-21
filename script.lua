@@ -1,94 +1,4 @@
 -- ============================================================
--- PEALLIB MENU
--- ============================================================
-local repo = 'https://raw.githubusercontent.com/pealz1/PealLib/main/'
-local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
-local Window = Library:CreateWindow({
-    Title = 'VANTA',
-    Center = true,
-    AutoShow = true,
-})
-
-local Tabs = {
-    Visuals = Window:AddTab('Visuals'),
-    Aim = Window:AddTab('Aim'),
-    Misc = Window:AddTab('Misc'),
-    Settings = Window:AddTab('Settings'),
-}
-
--- ============================================================
--- VISUALS TAB
--- ============================================================
-local Visuals = Tabs.Visuals
-
-local ESPBox = Visuals:AddLeftGroupbox('ESP')
-ESPBox:AddToggle('ESP_Enabled', { Text = 'Enable ESP', Default = true, Callback = function(v) getgenv().ESP_Enabled = v end })
-ESPBox:AddToggle('ESP_Box', { Text = 'Box', Default = true, Callback = function(v) getgenv().ESP_Box = v end })
-ESPBox:AddToggle('ESP_Name', { Text = 'Name', Default = true, Callback = function(v) getgenv().ESP_Name = v end })
-ESPBox:AddToggle('ESP_Team', { Text = 'Team', Default = true, Callback = function(v) getgenv().ESP_Team = v end })
-ESPBox:AddToggle('ESP_Distance', { Text = 'Distance', Default = true, Callback = function(v) getgenv().ESP_Distance = v end })
-ESPBox:AddToggle('ESP_Health', { Text = 'Health Bar', Default = true, Callback = function(v) getgenv().ESP_Health = v end })
-ESPBox:AddToggle('ESP_Tracer', { Text = 'Tracer', Default = true, Callback = function(v) getgenv().ESP_Tracer = v end })
-ESPBox:AddToggle('ESP_HeadDot', { Text = 'Head Dot', Default = true, Callback = function(v) getgenv().ESP_HeadDot = v end })
-ESPBox:AddToggle('ESP_Highlight', { Text = 'Highlight', Default = true, Callback = function(v) getgenv().ESP_Highlight = v end })
-ESPBox:AddSlider('ESP_MaxDistance', { Text = 'Max Distance', Default = 500, Min = 100, Max = 2000, Rounding = 0, Callback = function(v) getgenv().ESP_MaxDistance = v end })
-
-local FOVBox = Visuals:AddRightGroupbox('FOV')
-FOVBox:AddToggle('FOV_Enabled', { Text = 'Enable FOV', Default = true, Callback = function(v) getgenv().FOV_Enabled = v end })
-FOVBox:AddSlider('FOV_Default', { Text = 'Default FOV', Default = 90, Min = 30, Max = 120, Rounding = 0, Callback = function(v) getgenv().FOV_Default = v end })
-FOVBox:AddSlider('FOV_Zoom', { Text = 'Zoom FOV', Default = 30, Min = 10, Max = 90, Rounding = 0, Callback = function(v) getgenv().FOV_Zoom = v end })
-FOVBox:AddLabel('Zoom Key'):AddKeyPicker('FOV_Key', { Default = 'Z', Mode = 'Hold', Text = 'Zoom', Callback = function(v) getgenv().FOV_Key = v end })
-
-local FogBox = Visuals:AddRightGroupbox('No Fog')
-FogBox:AddToggle('NoFog_Enabled', { Text = 'Enable No Fog', Default = true, Callback = function(v) getgenv().NoFog_Enabled = v end })
-FogBox:AddToggle('AntiFlash_Enabled', { Text = 'Anti-Flash', Default = true, Callback = function(v) getgenv().AntiFlash_Enabled = v end })
-
--- ============================================================
--- AIM TAB
--- ============================================================
-local Aim = Tabs.Aim
-
-local SilentBox = Aim:AddLeftGroupbox('Silent Aim')
-SilentBox:AddToggle('Silent_Enabled', { Text = 'Enable Silent', Default = true, Callback = function(v) getgenv().Silent_Enabled = v end })
-SilentBox:AddSlider('Silent_FOV', { Text = 'FOV', Default = 125, Min = 30, Max = 360, Rounding = 0, Callback = function(v) getgenv().Silent_FOV = v end })
-SilentBox:AddToggle('Silent_TeamCheck', { Text = 'Team Check', Default = true, Callback = function(v) getgenv().Silent_TeamCheck = v end })
-
-local RecoilBox = Aim:AddLeftGroupbox('No Recoil')
-RecoilBox:AddToggle('NoRecoil_Enabled', { Text = 'Enable No Recoil', Default = true, Callback = function(v) getgenv().NoRecoil_Enabled = v end })
-
-local FireBox = Aim:AddRightGroupbox('Rapid Fire')
-FireBox:AddToggle('RapidFire_Enabled', { Text = 'Enable Rapid Fire', Default = true, Callback = function(v) getgenv().RapidFire_Enabled = v end })
-FireBox:AddSlider('RapidFire_Rate', { Text = 'Fire Rate', Default = 0.03, Min = 0.01, Max = 0.1, Rounding = 2, Callback = function(v) getgenv().RapidFire_Rate = v end })
-
-local HitBox = Aim:AddRightGroupbox('Hitmarker')
-HitBox:AddToggle('Hitmarker_Enabled', { Text = 'Enable Hitmarker', Default = true, Callback = function(v) getgenv().Hitmarker_Enabled = v end })
-HitBox:AddToggle('KillEffect_Enabled', { Text = 'Kill Effect', Default = true, Callback = function(v) getgenv().KillEffect_Enabled = v end })
-
--- ============================================================
--- MISC TAB
--- ============================================================
-local Misc = Tabs.Misc
-
-local ReloadBox = Misc:AddLeftGroupbox('Reload')
-ReloadBox:AddToggle('InstantReload_Enabled', { Text = 'Instant Reload', Default = true, Callback = function(v) getgenv().InstantReload_Enabled = v end })
-
-local FallBox = Misc:AddLeftGroupbox('Fall Damage')
-FallBox:AddToggle('NoFallDamage_Enabled', { Text = 'No Fall Damage', Default = true, Callback = function(v) getgenv().NoFallDamage_Enabled = v end })
-
-local WeaponBox = Misc:AddRightGroupbox('Weapon Info')
-WeaponBox:AddToggle('WeaponInfo_Enabled', { Text = 'Show Weapon', Default = true, Callback = function(v) getgenv().WeaponInfo_Enabled = v end })
-
--- ============================================================
--- SETTINGS TAB
--- ============================================================
-local Settings = Tabs.Settings
-local ConfigBox = Settings:AddLeftGroupbox('Config')
-ConfigBox:AddButton('Save Config', function() Library:SaveConfig('vanta_config') end)
-ConfigBox:AddButton('Load Config', function() Library:LoadConfig('vanta_config') end)
-ConfigBox:AddButton('Reset Config', function() Library:ResetConfig() end)Library:OnUnload(function()
-    print("[VANTA] unloaded")
-end)
--- ============================================================
 -- VANTA Script v8 + PealLib Menu
 -- Do not redistribute without credit
 -- ============================================================
@@ -282,7 +192,7 @@ do
 end
 
 -- ============================================================
--- 2. NO FOG — с pcall
+-- 2. NO FOG
 -- ============================================================
 do
     local function applyNoFog()
@@ -315,7 +225,6 @@ do
     end
 
     applyNoFog()
-
     Lighting:GetPropertyChangedSignal("FogEnd"):Connect(applyNoFog)
     Lighting:GetPropertyChangedSignal("FogStart"):Connect(applyNoFog)
     Lighting:GetPropertyChangedSignal("FogColor"):Connect(applyNoFog)
