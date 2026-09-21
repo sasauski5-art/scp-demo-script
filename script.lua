@@ -1,11 +1,102 @@
 -- ============================================================
--- VANTA Script
+-- PEALLIB MENU
+-- ============================================================
+local repo = 'https://raw.githubusercontent.com/pealz1/PealLib/main/'
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local Window = Library:CreateWindow({
+    Title = 'VANTA',
+    Center = true,
+    AutoShow = true,
+})
+
+local Tabs = {
+    Visuals = Window:AddTab('Visuals'),
+    Aim = Window:AddTab('Aim'),
+    Misc = Window:AddTab('Misc'),
+    Settings = Window:AddTab('Settings'),
+}
+
+-- ============================================================
+-- VISUALS TAB
+-- ============================================================
+local Visuals = Tabs.Visuals
+
+local ESPBox = Visuals:AddLeftGroupbox('ESP')
+ESPBox:AddToggle('ESP_Enabled', { Text = 'Enable ESP', Default = true, Callback = function(v) getgenv().ESP_Enabled = v end })
+ESPBox:AddToggle('ESP_Box', { Text = 'Box', Default = true, Callback = function(v) getgenv().ESP_Box = v end })
+ESPBox:AddToggle('ESP_Name', { Text = 'Name', Default = true, Callback = function(v) getgenv().ESP_Name = v end })
+ESPBox:AddToggle('ESP_Team', { Text = 'Team', Default = true, Callback = function(v) getgenv().ESP_Team = v end })
+ESPBox:AddToggle('ESP_Distance', { Text = 'Distance', Default = true, Callback = function(v) getgenv().ESP_Distance = v end })
+ESPBox:AddToggle('ESP_Health', { Text = 'Health Bar', Default = true, Callback = function(v) getgenv().ESP_Health = v end })
+ESPBox:AddToggle('ESP_Tracer', { Text = 'Tracer', Default = true, Callback = function(v) getgenv().ESP_Tracer = v end })
+ESPBox:AddToggle('ESP_HeadDot', { Text = 'Head Dot', Default = true, Callback = function(v) getgenv().ESP_HeadDot = v end })
+ESPBox:AddToggle('ESP_Highlight', { Text = 'Highlight', Default = true, Callback = function(v) getgenv().ESP_Highlight = v end })
+ESPBox:AddSlider('ESP_MaxDistance', { Text = 'Max Distance', Default = 500, Min = 100, Max = 2000, Rounding = 0, Callback = function(v) getgenv().ESP_MaxDistance = v end })
+
+local FOVBox = Visuals:AddRightGroupbox('FOV')
+FOVBox:AddToggle('FOV_Enabled', { Text = 'Enable FOV', Default = true, Callback = function(v) getgenv().FOV_Enabled = v end })
+FOVBox:AddSlider('FOV_Default', { Text = 'Default FOV', Default = 90, Min = 30, Max = 120, Rounding = 0, Callback = function(v) getgenv().FOV_Default = v end })
+FOVBox:AddSlider('FOV_Zoom', { Text = 'Zoom FOV', Default = 30, Min = 10, Max = 90, Rounding = 0, Callback = function(v) getgenv().FOV_Zoom = v end })
+FOVBox:AddLabel('Zoom Key'):AddKeyPicker('FOV_Key', { Default = 'Z', Mode = 'Hold', Text = 'Zoom', Callback = function(v) getgenv().FOV_Key = v end })
+
+local FogBox = Visuals:AddRightGroupbox('No Fog')
+FogBox:AddToggle('NoFog_Enabled', { Text = 'Enable No Fog', Default = true, Callback = function(v) getgenv().NoFog_Enabled = v end })
+FogBox:AddToggle('AntiFlash_Enabled', { Text = 'Anti-Flash', Default = true, Callback = function(v) getgenv().AntiFlash_Enabled = v end })
+
+-- ============================================================
+-- AIM TAB
+-- ============================================================
+local Aim = Tabs.Aim
+
+local SilentBox = Aim:AddLeftGroupbox('Silent Aim')
+SilentBox:AddToggle('Silent_Enabled', { Text = 'Enable Silent', Default = true, Callback = function(v) getgenv().Silent_Enabled = v end })
+SilentBox:AddSlider('Silent_FOV', { Text = 'FOV', Default = 125, Min = 30, Max = 360, Rounding = 0, Callback = function(v) getgenv().Silent_FOV = v end })
+SilentBox:AddToggle('Silent_TeamCheck', { Text = 'Team Check', Default = true, Callback = function(v) getgenv().Silent_TeamCheck = v end })
+
+local RecoilBox = Aim:AddLeftGroupbox('No Recoil')
+RecoilBox:AddToggle('NoRecoil_Enabled', { Text = 'Enable No Recoil', Default = true, Callback = function(v) getgenv().NoRecoil_Enabled = v end })
+
+local FireBox = Aim:AddRightGroupbox('Rapid Fire')
+FireBox:AddToggle('RapidFire_Enabled', { Text = 'Enable Rapid Fire', Default = true, Callback = function(v) getgenv().RapidFire_Enabled = v end })
+FireBox:AddSlider('RapidFire_Rate', { Text = 'Fire Rate', Default = 0.03, Min = 0.01, Max = 0.1, Rounding = 2, Callback = function(v) getgenv().RapidFire_Rate = v end })
+
+local HitBox = Aim:AddRightGroupbox('Hitmarker')
+HitBox:AddToggle('Hitmarker_Enabled', { Text = 'Enable Hitmarker', Default = true, Callback = function(v) getgenv().Hitmarker_Enabled = v end })
+HitBox:AddToggle('KillEffect_Enabled', { Text = 'Kill Effect', Default = true, Callback = function(v) getgenv().KillEffect_Enabled = v end })
+
+-- ============================================================
+-- MISC TAB
+-- ============================================================
+local Misc = Tabs.Misc
+
+local ReloadBox = Misc:AddLeftGroupbox('Reload')
+ReloadBox:AddToggle('InstantReload_Enabled', { Text = 'Instant Reload', Default = true, Callback = function(v) getgenv().InstantReload_Enabled = v end })
+
+local FallBox = Misc:AddLeftGroupbox('Fall Damage')
+FallBox:AddToggle('NoFallDamage_Enabled', { Text = 'No Fall Damage', Default = true, Callback = function(v) getgenv().NoFallDamage_Enabled = v end })
+
+local WeaponBox = Misc:AddRightGroupbox('Weapon Info')
+WeaponBox:AddToggle('WeaponInfo_Enabled', { Text = 'Show Weapon', Default = true, Callback = function(v) getgenv().WeaponInfo_Enabled = v end })
+
+-- ============================================================
+-- SETTINGS TAB
+-- ============================================================
+local Settings = Tabs.Settings
+local ConfigBox = Settings:AddLeftGroupbox('Config')
+ConfigBox:AddButton('Save Config', function() Library:SaveConfig('vanta_config') end)
+ConfigBox:AddButton('Load Config', function() Library:LoadConfig('vanta_config') end)
+ConfigBox:AddButton('Reset Config', function() Library:ResetConfig() end)Library:OnUnload(function()
+    print("[VANTA] unloaded")
+end)
+-- ============================================================
+-- VANTA Script v8 + PealLib Menu
 -- Do not redistribute without credit
 -- ============================================================
--- VANTA full: silent + ESP + NoRecoil + RapidFire + Hitmarker + NoFallDamage + InstantReload + AntiDecon
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 local Camera = workspace.CurrentCamera
 local lp = Players.LocalPlayer
 
@@ -15,23 +106,239 @@ local function NewDrawing(dtype, props)
     return d
 end
 
-print("[VANTA] loading...")
+print("[VANTA] loading v8...")
 
 -- ============================================================
--- 1. SILENT AIM
+-- PEALLIB MENU
+-- ============================================================
+local repo = 'https://raw.githubusercontent.com/pealz1/PealLib/main/'
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local Window = Library:CreateWindow({
+    Title = 'VANTA',
+    Center = true,
+    AutoShow = true,
+})
+
+local Tabs = {
+    Visuals = Window:AddTab('Visuals'),
+    Aim = Window:AddTab('Aim'),
+    Misc = Window:AddTab('Misc'),
+    Settings = Window:AddTab('Settings'),
+}
+
+-- ============================================================
+-- VISUALS TAB
+-- ============================================================
+local Visuals = Tabs.Visuals
+
+local ESPBox = Visuals:AddLeftGroupbox('ESP')
+ESPBox:AddToggle('ESP_Enabled', { Text = 'Enable ESP', Default = true, Callback = function(v) getgenv().ESP_Enabled = v end })
+ESPBox:AddToggle('ESP_Box', { Text = 'Box', Default = true, Callback = function(v) getgenv().ESP_Box = v end })
+ESPBox:AddToggle('ESP_Name', { Text = 'Name', Default = true, Callback = function(v) getgenv().ESP_Name = v end })
+ESPBox:AddToggle('ESP_Team', { Text = 'Team', Default = true, Callback = function(v) getgenv().ESP_Team = v end })
+ESPBox:AddToggle('ESP_Distance', { Text = 'Distance', Default = true, Callback = function(v) getgenv().ESP_Distance = v end })
+ESPBox:AddToggle('ESP_Health', { Text = 'Health Bar', Default = true, Callback = function(v) getgenv().ESP_Health = v end })
+ESPBox:AddToggle('ESP_Tracer', { Text = 'Tracer', Default = true, Callback = function(v) getgenv().ESP_Tracer = v end })
+ESPBox:AddToggle('ESP_HeadDot', { Text = 'Head Dot', Default = true, Callback = function(v) getgenv().ESP_HeadDot = v end })
+ESPBox:AddToggle('ESP_Highlight', { Text = 'Highlight', Default = true, Callback = function(v) getgenv().ESP_Highlight = v end })
+ESPBox:AddSlider('ESP_MaxDistance', { Text = 'Max Distance', Default = 500, Min = 100, Max = 2000, Rounding = 0, Callback = function(v) getgenv().ESP_MaxDistance = v end })
+
+local FOVBox = Visuals:AddRightGroupbox('FOV')
+FOVBox:AddToggle('FOV_Enabled', { Text = 'Enable FOV', Default = true, Callback = function(v) getgenv().FOV_Enabled = v end })
+FOVBox:AddSlider('FOV_Default', { Text = 'Default FOV', Default = 90, Min = 30, Max = 120, Rounding = 0, Callback = function(v) getgenv().FOV_Default = v end })
+FOVBox:AddSlider('FOV_Zoom', { Text = 'Zoom FOV', Default = 30, Min = 10, Max = 90, Rounding = 0, Callback = function(v) getgenv().FOV_Zoom = v end })
+FOVBox:AddLabel('Zoom Key'):AddKeyPicker('FOV_Key', { Default = 'Z', Mode = 'Hold', Text = 'Zoom', Callback = function(v) getgenv().FOV_Key = v end })
+
+local FogBox = Visuals:AddRightGroupbox('No Fog')
+FogBox:AddToggle('NoFog_Enabled', { Text = 'Enable No Fog', Default = true, Callback = function(v) getgenv().NoFog_Enabled = v end })
+FogBox:AddToggle('AntiFlash_Enabled', { Text = 'Anti-Flash', Default = true, Callback = function(v) getgenv().AntiFlash_Enabled = v end })
+
+-- ============================================================
+-- AIM TAB
+-- ============================================================
+local Aim = Tabs.Aim
+
+local SilentBox = Aim:AddLeftGroupbox('Silent Aim')
+SilentBox:AddToggle('Silent_Enabled', { Text = 'Enable Silent', Default = true, Callback = function(v) getgenv().Silent_Enabled = v end })
+SilentBox:AddSlider('Silent_FOV', { Text = 'FOV', Default = 125, Min = 30, Max = 360, Rounding = 0, Callback = function(v) getgenv().Silent_FOV = v end })
+SilentBox:AddToggle('Silent_TeamCheck', { Text = 'Team Check', Default = true, Callback = function(v) getgenv().Silent_TeamCheck = v end })
+
+local RecoilBox = Aim:AddLeftGroupbox('No Recoil')
+RecoilBox:AddToggle('NoRecoil_Enabled', { Text = 'Enable No Recoil', Default = true, Callback = function(v) getgenv().NoRecoil_Enabled = v end })
+
+local FireBox = Aim:AddRightGroupbox('Rapid Fire')
+FireBox:AddToggle('RapidFire_Enabled', { Text = 'Enable Rapid Fire', Default = true, Callback = function(v) getgenv().RapidFire_Enabled = v end })
+FireBox:AddSlider('RapidFire_Rate', { Text = 'Fire Rate', Default = 0.03, Min = 0.01, Max = 0.1, Rounding = 2, Callback = function(v) getgenv().RapidFire_Rate = v end })
+
+local HitBox = Aim:AddRightGroupbox('Hitmarker')
+HitBox:AddToggle('Hitmarker_Enabled', { Text = 'Enable Hitmarker', Default = true, Callback = function(v) getgenv().Hitmarker_Enabled = v end })
+HitBox:AddToggle('KillEffect_Enabled', { Text = 'Kill Effect', Default = true, Callback = function(v) getgenv().KillEffect_Enabled = v end })
+
+-- ============================================================
+-- MISC TAB
+-- ============================================================
+local Misc = Tabs.Misc
+
+local ReloadBox = Misc:AddLeftGroupbox('Reload')
+ReloadBox:AddToggle('InstantReload_Enabled', { Text = 'Instant Reload', Default = true, Callback = function(v) getgenv().InstantReload_Enabled = v end })
+
+local FallBox = Misc:AddLeftGroupbox('Fall Damage')
+FallBox:AddToggle('NoFallDamage_Enabled', { Text = 'No Fall Damage', Default = true, Callback = function(v) getgenv().NoFallDamage_Enabled = v end })
+
+local WeaponBox = Misc:AddRightGroupbox('Weapon Info')
+WeaponBox:AddToggle('WeaponInfo_Enabled', { Text = 'Show Weapon', Default = true, Callback = function(v) getgenv().WeaponInfo_Enabled = v end })
+
+-- ============================================================
+-- SETTINGS TAB
+-- ============================================================
+local Settings = Tabs.Settings
+local ConfigBox = Settings:AddLeftGroupbox('Config')
+ConfigBox:AddButton('Save Config', function() Library:SaveConfig('vanta_config') end)
+ConfigBox:AddButton('Load Config', function() Library:LoadConfig('vanta_config') end)
+ConfigBox:AddButton('Reset Config', function() Library:ResetConfig() end)
+
+Library:OnUnload(function()
+    print("[VANTA] unloaded")
+end)
+
+print("[VANTA] menu loaded")
+
+-- ============================================================
+-- 1. CUSTOM FOV — мгновенно
 -- ============================================================
 do
-    local Config = {
-        FOV = 125,
-        TeamCheck = true,
-        VisibleOnly = false,
-        WatchdogInterval = 5,
-        TargetCacheTime = 0.05,
-        MaxDistance = 15000,
-    }
+    local currentFOV = 90
+    local isWeaponZooming = false
 
+    local function applyFOV()
+        if not isWeaponZooming and getgenv().FOV_Enabled ~= false then
+            Camera.FieldOfView = currentFOV
+        end
+    end
+
+    local function watchWeapon(tool)
+        if not tool or not tool:IsA("Tool") then return end
+        isWeaponZooming = tool:GetAttribute("ADS") or tool:GetAttribute("isZoomed") or false
+        applyFOV()
+        tool:GetAttributeChangedSignal("ADS"):Connect(function()
+            isWeaponZooming = tool:GetAttribute("ADS") or false
+            if not isWeaponZooming then applyFOV() end
+        end)
+        tool:GetAttributeChangedSignal("isZoomed"):Connect(function()
+            isWeaponZooming = tool:GetAttribute("isZoomed") or false
+            if not isWeaponZooming then applyFOV() end
+        end)
+    end
+
+    local function watchCharacter(char)
+        if not char then return end
+        for _, v in pairs(char:GetChildren()) do
+            if v:IsA("Tool") then watchWeapon(v) end
+        end
+        char.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then watchWeapon(child) end
+        end)
+        char.ChildRemoved:Connect(function(child)
+            if child:IsA("Tool") then
+                isWeaponZooming = false
+                applyFOV()
+            end
+        end)
+    end
+
+    if lp.Character then watchCharacter(lp.Character) end
+    lp.CharacterAdded:Connect(function(char)
+        currentFOV = getgenv().FOV_Default or 90
+        Camera.FieldOfView = currentFOV
+        isWeaponZooming = false
+        watchCharacter(char)
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        local key = getgenv().FOV_Key or 'Z'
+        if input.KeyCode == Enum.KeyCode[key] then
+            Camera.FieldOfView = getgenv().FOV_Zoom or 30
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        local key = getgenv().FOV_Key or 'Z'
+        if input.KeyCode == Enum.KeyCode[key] then
+            applyFOV()
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(0.05)
+            currentFOV = getgenv().FOV_Default or 90
+            if not isWeaponZooming and Camera.FieldOfView ~= currentFOV and Camera.FieldOfView ~= (getgenv().FOV_Zoom or 30) then
+                Camera.FieldOfView = currentFOV
+            end
+        end
+    end)
+
+    print("[VANTA] custom FOV loaded")
+end
+
+-- ============================================================
+-- 2. NO FOG — с pcall
+-- ============================================================
+do
+    local function applyNoFog()
+        if getgenv().NoFog_Enabled == false then return end
+        pcall(function()
+            Lighting.FogEnd = 100000
+            Lighting.FogStart = 100000
+            Lighting.FogColor = Color3.fromRGB(0, 0, 0)
+            Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+            Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        end)
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("Atmosphere") then
+                pcall(function() v.Density = 0 end)
+                pcall(function() v.Haze = 0 end)
+                pcall(function() v.Glare = 0 end)
+            end
+            if v:IsA("BlurEffect") then
+                pcall(function() v.Size = 0 end)
+            end
+            if v:IsA("ColorCorrectionEffect") then
+                pcall(function() v.Brightness = 0 end)
+                pcall(function() v.Contrast = 0 end)
+                pcall(function() v.Saturation = 0 end)
+            end
+            if v:IsA("SunRaysEffect") then
+                pcall(function() v.Intensity = 0 end)
+            end
+        end
+    end
+
+    applyNoFog()
+
+    Lighting:GetPropertyChangedSignal("FogEnd"):Connect(applyNoFog)
+    Lighting:GetPropertyChangedSignal("FogStart"):Connect(applyNoFog)
+    Lighting:GetPropertyChangedSignal("FogColor"):Connect(applyNoFog)
+    Lighting.ChildAdded:Connect(applyNoFog)
+    Lighting.ChildRemoved:Connect(applyNoFog)
+    lp.CharacterAdded:Connect(applyNoFog)
+
+    task.spawn(function()
+        while true do
+            task.wait(0.5)
+            pcall(applyNoFog)
+        end
+    end)
+
+    print("[VANTA] no fog loaded")
+end
+
+-- ============================================================
+-- 3. SILENT AIM
+-- ============================================================
+do
     local function isEnemy(plr)
-        if not Config.TeamCheck then return true end
+        if getgenv().Silent_TeamCheck == false then return true end
         if not lp.Team or not plr.Team then return true end
         return plr.Team ~= lp.Team
     end
@@ -110,14 +417,16 @@ do
     local cachedTargetTime = 0
 
     local function getTargetPart()
+        if getgenv().Silent_Enabled == false then return nil end
         local now = tick()
-        if cachedTarget and now - cachedTargetTime < Config.TargetCacheTime then
+        if cachedTarget and now - cachedTargetTime < 0.02 then
             if cachedTarget.Parent and cachedTarget.Parent.Parent then
                 return cachedTarget
             end
             cachedTarget = nil
         end
-        local closest, shortest = nil, Config.FOV
+        local fov = getgenv().Silent_FOV or 125
+        local closest, shortest = nil, fov
         local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
         for _, plr in pairs(Players:GetPlayers()) do
             if plr == lp then continue end
@@ -131,10 +440,10 @@ do
             local rootScreen, rootOn = Camera:WorldToViewportPoint(root.Position)
             if not rootOn then continue end
             local rootDist = (Vector2.new(rootScreen.X, rootScreen.Y) - center).Magnitude
-            if rootDist > Config.FOV + 100 then continue end
+            if rootDist > fov + 100 then continue end
             local part = getHitPart(plr)
             if not part then continue end
-            if Config.VisibleOnly and not hasLineOfSight(part) then continue end
+            if not hasLineOfSight(part) then continue end
             local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
             if not onScreen then continue end
             local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
@@ -153,12 +462,12 @@ do
             local target = getTargetPart()
             if target then
                 local origin = Camera.CFrame.Position
-                local direction = (target.Position - origin).Unit * Config.MaxDistance
+                local direction = target.Position - origin
                 local params = RaycastParams.new()
-                params.FilterType = Enum.RaycastFilterType.Include
-                params.FilterDescendantsInstances = { target }
+                params.FilterType = Enum.RaycastFilterType.Exclude
+                params.FilterDescendantsInstances = { lp.Character, Camera }
                 local newResult = workspace:Raycast(origin, direction, params)
-                if newResult and newResult.Instance == target then
+                if newResult then
                     return oldDelegate(self, newResult, velocity, bullet, id)
                 end
             end
@@ -232,7 +541,7 @@ do
 
     task.spawn(function()
         while true do
-            task.wait(Config.WatchdogInterval)
+            task.wait(5)
             pcall(hookAllCasters)
         end
     end)
@@ -243,58 +552,29 @@ do
 end
 
 -- ============================================================
--- 2. ESP ИГРОКОВ
+-- 4. ESP ИГРОКОВ
 -- ============================================================
 do
-    local Config = {
-        Enabled = true,
-        MaxDistance = 500,
-        ShowBox = true,
-        ShowTracer = true,
-        ShowHeadDot = true,
-        ShowName = true,
-        ShowDistance = true,
-        ShowHealth = true,
-        ShowTeam = true,
-        ShowOffscreenArrows = true,
-        BoxThickness = 1,
-        CornerLength = 0.25,
-        UseCornerBox = true,
-        TracerOrigin = "bottom",
-        EnemyColor = Color3.fromRGB(255, 60, 60),
-        TeamColor = Color3.fromRGB(60, 255, 60),
-        NameColor = Color3.fromRGB(255, 255, 255),
-        DistanceColor = Color3.fromRGB(180, 180, 180),
-        HeadDotColor = Color3.fromRGB(255, 255, 255),
-        ArrowColor = Color3.fromRGB(255, 80, 80),
-        ArrowSize = 14,
-        ArrowOffset = 40,
-        TeamCheck = true,
-        UseHighlight = true,
-        HighlightTransparency = 0.7,
-        HighlightOutlineTransparency = 0.2,
-    }
+    local espCache = {}
 
     local function isEnemy(plr)
-        if not Config.TeamCheck then return true end
+        if getgenv().ESP_TeamCheck == false then return true end
         if not lp.Team or not plr.Team then return true end
         return plr.Team ~= lp.Team
     end
 
     local function getTeamColor(plr)
-        if not isEnemy(plr) then return Config.TeamColor end
-        return Config.EnemyColor
+        if not isEnemy(plr) then return Color3.fromRGB(60, 255, 60) end
+        return Color3.fromRGB(255, 60, 60)
     end
 
-    local espCache = {}
-
     local function CreateHighlight(char)
-        if not Config.UseHighlight then return nil end
+        if getgenv().ESP_Highlight == false then return nil end
         local ok, hl = pcall(function()
             local h = Instance.new("Highlight")
             h.Name = "VantaPlayerESP"
-            h.FillTransparency = Config.HighlightTransparency
-            h.OutlineTransparency = Config.HighlightOutlineTransparency
+            h.FillTransparency = 0.7
+            h.OutlineTransparency = 0.2
             h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             h.Adornee = char
             h.Parent = char
@@ -307,14 +587,14 @@ do
     local function CreateESP(plr)
         if espCache[plr] then return espCache[plr] end
         local data = {
-            L1 = NewDrawing("Line", { Thickness=Config.BoxThickness, Visible=false }),
-            L2 = NewDrawing("Line", { Thickness=Config.BoxThickness, Visible=false }),
-            L3 = NewDrawing("Line", { Thickness=Config.BoxThickness, Visible=false }),
-            L4 = NewDrawing("Line", { Thickness=Config.BoxThickness, Visible=false }),
-            C1 = NewDrawing("Line", { Thickness=Config.BoxThickness+1, Visible=false }),
-            C2 = NewDrawing("Line", { Thickness=Config.BoxThickness+1, Visible=false }),
-            C3 = NewDrawing("Line", { Thickness=Config.BoxThickness+1, Visible=false }),
-            C4 = NewDrawing("Line", { Thickness=Config.BoxThickness+1, Visible=false }),
+            L1 = NewDrawing("Line", { Thickness=1, Visible=false }),
+            L2 = NewDrawing("Line", { Thickness=1, Visible=false }),
+            L3 = NewDrawing("Line", { Thickness=1, Visible=false }),
+            L4 = NewDrawing("Line", { Thickness=1, Visible=false }),
+            C1 = NewDrawing("Line", { Thickness=2, Visible=false }),
+            C2 = NewDrawing("Line", { Thickness=2, Visible=false }),
+            C3 = NewDrawing("Line", { Thickness=2, Visible=false }),
+            C4 = NewDrawing("Line", { Thickness=2, Visible=false }),
             TopBar = NewDrawing("Line", { Thickness=2, Visible=false }),
             HpBg   = NewDrawing("Line", { Thickness=5, Color=Color3.fromRGB(0,0,0), Visible=false }),
             HpFill = NewDrawing("Line", { Thickness=4, Color=Color3.fromRGB(0,255,0), Visible=false }),
@@ -323,7 +603,6 @@ do
             Dist = NewDrawing("Text", { Size=11, Center=true, Outline=true, Visible=false }),
             Tracer  = NewDrawing("Line",     { Thickness=1, Visible=false }),
             HeadDot = NewDrawing("Circle",   { Thickness=1, Filled=true, NumSides=16, Radius=3, Visible=false }),
-            Arrow   = NewDrawing("Triangle", { Thickness=2, Filled=true, Visible=false }),
             Highlight = nil,
             LastColor = nil,
         }
@@ -331,12 +610,7 @@ do
         return data
     end
 
-    local KEYS = {
-        "L1","L2","L3","L4","C1","C2","C3","C4",
-        "TopBar","HpBg","HpFill",
-        "Name","Team","Dist",
-        "Tracer","HeadDot","Arrow"
-    }
+    local KEYS = {"L1","L2","L3","L4","C1","C2","C3","C4","TopBar","HpBg","HpFill","Name","Team","Dist","Tracer","HeadDot"}
 
     local function HideESP(data)
         for _, k in ipairs(KEYS) do data[k].Visible = false end
@@ -351,125 +625,69 @@ do
         if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
     end
 
-    local function DrawCornerBox(data, x, y, w, h)
-        local cl = math.floor(w * Config.CornerLength)
-        local cs = math.floor(h * Config.CornerLength)
-        data.C1.From=Vector2.new(x,y);     data.C1.To=Vector2.new(x+cl,y)
-        data.C2.From=Vector2.new(x,y);     data.C2.To=Vector2.new(x,y+cs)
-        data.C3.From=Vector2.new(x+w,y);   data.C3.To=Vector2.new(x+w-cl,y)
-        data.C4.From=Vector2.new(x+w,y);   data.C4.To=Vector2.new(x+w,y+cs)
-        data.L1.From=Vector2.new(x,y+h);   data.L1.To=Vector2.new(x+cl,y+h)
-        data.L2.From=Vector2.new(x,y+h);   data.L2.To=Vector2.new(x,y+h-cs)
-        data.L3.From=Vector2.new(x+w,y+h); data.L3.To=Vector2.new(x+w-cl,y+h)
-        data.L4.From=Vector2.new(x+w,y+h); data.L4.To=Vector2.new(x+w,y+h-cs)
-        for _, k in ipairs({"L1","L2","L3","L4","C1","C2","C3","C4"}) do
-            data[k].Visible = true
-        end
-    end
-
-    local function DrawFullBox(data, x, y, w, h)
-        data.L1.From=Vector2.new(x,y);     data.L1.To=Vector2.new(x+w,y)
-        data.L2.From=Vector2.new(x+w,y);   data.L2.To=Vector2.new(x+w,y+h)
-        data.L3.From=Vector2.new(x+w,y+h); data.L3.To=Vector2.new(x,y+h)
-        data.L4.From=Vector2.new(x,y+h);   data.L4.To=Vector2.new(x,y)
-        for _, k in ipairs({"L1","L2","L3","L4"}) do data[k].Visible = true end
-        for _, k in ipairs({"C1","C2","C3","C4"}) do data[k].Visible = false end
-    end
-
-    local function DrawArrow(data, worldPos)
-        local vp = Camera.ViewportSize
-        local center = Vector2.new(vp.X/2, vp.Y/2)
-        local screenPos, onScreen = Camera:WorldToViewportPoint(worldPos)
-        if onScreen and screenPos.Z > 0 then data.Arrow.Visible = false return end
-        local dir = Vector2.new(screenPos.X, screenPos.Y) - center
-        if dir.Magnitude < 1 then data.Arrow.Visible = false return end
-        dir = dir.Unit
-        local radius = math.min(vp.X, vp.Y) / 2 - Config.ArrowOffset
-        local pos = center + dir * radius
-        local perp = Vector2.new(-dir.Y, dir.X) * (Config.ArrowSize / 2)
-        local tip = pos + dir * Config.ArrowSize
-        data.Arrow.PointA = tip
-        data.Arrow.PointB = pos - perp
-        data.Arrow.PointC = pos + perp
-        data.Arrow.Color = Config.ArrowColor
-        data.Arrow.Visible = true
-    end
-
     local function UpdateESP()
-        if not Config.Enabled then
+        if getgenv().ESP_Enabled == false then
             for _, data in pairs(espCache) do HideESP(data) end
             return
         end
         local vp = Camera.ViewportSize
         local center = Vector2.new(vp.X/2, vp.Y/2)
-        local tracerFrom = if Config.TracerOrigin == "bottom"
-            then Vector2.new(vp.X/2, vp.Y) else center
-
+        local maxDist = getgenv().ESP_MaxDistance or 500
         for plr, data in pairs(espCache) do
             if plr == lp then HideESP(data) continue end
-
             local char = plr.Character
             local hum  = char and char:FindFirstChildOfClass("Humanoid")
             if not char or not hum or hum.Health <= 0 or not char.Parent then
                 HideESP(data) continue
             end
-
             if not isEnemy(plr) then HideESP(data) continue end
-
             local root = char:FindFirstChild("HumanoidRootPart")
             if not root then HideESP(data) continue end
-
             local rootScreen, rootOn = Camera:WorldToViewportPoint(root.Position)
             local distance = (Camera.CFrame.Position - root.Position).Magnitude
-
-            if not rootOn or distance > Config.MaxDistance then
-                HideESP(data)
-                if Config.ShowOffscreenArrows and distance <= Config.MaxDistance then
-                    DrawArrow(data, root.Position)
-                end
-                continue
+            if not rootOn or distance > maxDist then
+                HideESP(data) continue
             end
-
             local hipHeight = hum.HipHeight > 0 and hum.HipHeight or 2.5
-            local topPos,    topOn    = Camera:WorldToViewportPoint(
-                root.Position + Vector3.new(0, hipHeight + 1.5, 0))
-            local bottomPos, bottomOn = Camera:WorldToViewportPoint(
-                root.Position + Vector3.new(0, -hipHeight, 0))
-            if not topOn or not bottomOn then HideESP(data) continue end
-
+            local topPos = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, hipHeight + 1.5, 0))
+            local bottomPos = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, -hipHeight, 0))
             local height  = math.max(math.abs(bottomPos.Y - topPos.Y), 20)
             local width   = height * 0.55
             local centerX = rootScreen.X
             local x = centerX - width/2
             local y = topPos.Y
-
             local color = getTeamColor(plr)
             if data.LastColor ~= color then
                 data.LastColor = color
                 for _, k in ipairs({"L1","L2","L3","L4","C1","C2","C3","C4","TopBar","Tracer"}) do
                     data[k].Color = color
                 end
-                data.HeadDot.Color = Config.HeadDotColor
+                data.HeadDot.Color = Color3.fromRGB(255, 255, 255)
             end
-
-            if Config.ShowBox then
-                if Config.UseCornerBox then
-                    DrawCornerBox(data, x, y, width, height)
-                else
-                    DrawFullBox(data, x, y, width, height)
+            if getgenv().ESP_Box ~= false then
+                local cl = math.floor(width * 0.25)
+                local cs = math.floor(height * 0.25)
+                data.C1.From=Vector2.new(x,y);     data.C1.To=Vector2.new(x+cl,y)
+                data.C2.From=Vector2.new(x,y);     data.C2.To=Vector2.new(x,y+cs)
+                data.C3.From=Vector2.new(x+w,y);   data.C3.To=Vector2.new(x+w-cl,y)
+                data.C4.From=Vector2.new(x+w,y);   data.C4.To=Vector2.new(x+w,y+cs)
+                data.L1.From=Vector2.new(x,y+h);   data.L1.To=Vector2.new(x+cl,y+h)
+                data.L2.From=Vector2.new(x,y+h);   data.L2.To=Vector2.new(x,y+h-cs)
+                data.L3.From=Vector2.new(x+w,y+h); data.L3.To=Vector2.new(x+w-cl,y+h)
+                data.L4.From=Vector2.new(x+w,y+h); data.L4.To=Vector2.new(x+w,y+h-cs)
+                for _, k in ipairs({"L1","L2","L3","L4","C1","C2","C3","C4"}) do
+                    data[k].Visible = true
                 end
-                data.TopBar.From    = Vector2.new(x - 2, y - 1)
-                data.TopBar.To      = Vector2.new(x + width + 2, y - 1)
+                data.TopBar.From = Vector2.new(x - 2, y - 1)
+                data.TopBar.To = Vector2.new(x + width + 2, y - 1)
                 data.TopBar.Visible = true
             end
-
-            if Config.ShowTracer then
-                data.Tracer.From    = tracerFrom
+            if getgenv().ESP_Tracer ~= false then
+                data.Tracer.From    = Vector2.new(vp.X/2, vp.Y)
                 data.Tracer.To      = Vector2.new(bottomPos.X, bottomPos.Y)
                 data.Tracer.Visible = true
             else data.Tracer.Visible = false end
-
-            if Config.ShowHeadDot then
+            if getgenv().ESP_HeadDot ~= false then
                 local head = char:FindFirstChild("Head")
                 if head and head:IsA("BasePart") then
                     local hp, hs = Camera:WorldToViewportPoint(head.Position)
@@ -479,29 +697,25 @@ do
                     else data.HeadDot.Visible = false end
                 else data.HeadDot.Visible = false end
             end
-
-            if Config.ShowName then
+            if getgenv().ESP_Name ~= false then
                 data.Name.Text     = plr.Name
                 data.Name.Position = Vector2.new(centerX, y - 30)
-                data.Name.Color    = Config.NameColor
+                data.Name.Color    = Color3.fromRGB(255, 255, 255)
                 data.Name.Visible  = true
             else data.Name.Visible = false end
-
-            if Config.ShowTeam then
+            if getgenv().ESP_Team ~= false then
                 data.Team.Text     = plr.Team and plr.Team.Name or "?"
                 data.Team.Position = Vector2.new(centerX, y - 18)
                 data.Team.Color    = color
                 data.Team.Visible  = true
             else data.Team.Visible = false end
-
-            if Config.ShowDistance then
+            if getgenv().ESP_Distance ~= false then
                 data.Dist.Text     = string.format("[%.0fm]", distance)
                 data.Dist.Position = Vector2.new(centerX, y + height + 3)
-                data.Dist.Color    = Config.DistanceColor
+                data.Dist.Color    = Color3.fromRGB(180, 180, 180)
                 data.Dist.Visible  = true
             else data.Dist.Visible = false end
-
-            if Config.ShowHealth then
+            if getgenv().ESP_Health ~= false then
                 local maxHp   = hum.MaxHealth > 0 and hum.MaxHealth or 100
                 local hpRatio = math.clamp(hum.Health/maxHp, 0, 1)
                 local barX = x - 8
@@ -520,7 +734,6 @@ do
                 data.HpBg.Visible   = false
                 data.HpFill.Visible = false
             end
-
             if not data.Highlight then data.Highlight = CreateHighlight(char) end
             if data.Highlight then
                 data.Highlight.FillColor    = color
@@ -528,8 +741,6 @@ do
                 data.Highlight.Adornee      = char
                 data.Highlight.Enabled      = true
             end
-
-            data.Arrow.Visible = false
         end
     end
 
@@ -564,10 +775,9 @@ do
 end
 
 -- ============================================================
--- 3. NO RECOIL
+-- 5. NO RECOIL
 -- ============================================================
 do
-    local Config = { WatchdogInterval = 3, ClearOnToolChange = true }
     local cachedTables = {}
     local lastToolHash = 0
 
@@ -595,6 +805,7 @@ do
     end
 
     local function clearRecoil()
+        if getgenv().NoRecoil_Enabled == false then return end
         for obj in pairs(cachedTables) do
             if type(obj) == "table" then clearOne(obj)
             else cachedTables[obj] = nil end
@@ -620,38 +831,22 @@ do
         return h
     end
 
-    local function watchCharacter(char)
-        if not char then return end
-        char.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") and Config.ClearOnToolChange then
-                task.wait(0.3)
-                cachedTables = {}
-                scanWeapons()
-                clearRecoil()
-            end
-        end)
-        char.ChildRemoved:Connect(function(child)
-            if child:IsA("Tool") and Config.ClearOnToolChange then
-                task.wait(0.3)
-                cachedTables = {}
-                scanWeapons()
-                clearRecoil()
-            end
+    if lp.Character then
+        lp.Character.ChildAdded:Connect(function()
+            task.wait(0.3)
+            cachedTables = {}
+            scanWeapons()
         end)
     end
-
-    if lp.Character then watchCharacter(lp.Character) end
     lp.CharacterAdded:Connect(function(char)
-        watchCharacter(char)
         task.wait(1)
         cachedTables = {}
         scanWeapons()
-        clearRecoil()
     end)
 
     task.spawn(function()
         while true do
-            task.wait(Config.WatchdogInterval)
+            task.wait(3)
             local h = toolHash(lp.Character)
             if h ~= lastToolHash then
                 lastToolHash = h
@@ -669,18 +864,19 @@ do
 end
 
 -- ============================================================
--- 4. RAPID FIRE
+-- 6. RAPID FIRE
 -- ============================================================
 do
-    local FIRE_RATE = 0.03
     local function patchSettings(t)
         if type(t) ~= "table" then return end
+        local rate = getgenv().RapidFire_Rate or 0.03
         for k, v in pairs(t) do
             local n = tostring(k):lower()
-            if n == "firerate" then t[k] = FIRE_RATE end
+            if n == "firerate" then t[k] = rate end
         end
     end
     local function scanSettings()
+        if getgenv().RapidFire_Enabled == false then return end
         for _, obj in pairs(getgc(true)) do
             if type(obj) ~= "table" then continue end
             local hasFR, hasDmg = false, false
@@ -695,90 +891,123 @@ do
 
     scanSettings()
 
-    local function watchChar(c)
-        c.ChildAdded:Connect(function(child)
+    if lp.Character then
+        lp.Character.ChildAdded:Connect(function(child)
             if child:IsA("Tool") then
                 task.wait(0.5)
                 scanSettings()
             end
         end)
     end
+    lp.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        scanSettings()
+    end)
 
-    if lp.Character then watchChar(lp.Character) end
-    lp.CharacterAdded:Connect(watchChar)
-    print("[VANTA] rapidfire loaded — FireRate =", FIRE_RATE)
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            pcall(scanSettings)
+        end
+    end)
+
+    print("[VANTA] rapidfire loaded")
 end
 
 -- ============================================================
--- 5. HITMARKER
+-- 7. HITMARKER + KILL EFFECT
 -- ============================================================
 do
-    local Config = {
-        Enabled = true,
-        Size = 10,
-        Thickness = 1.5,
-        Gap = 4,
-        Duration = 0.15,
-        NormalColor   = Color3.fromRGB(255, 255, 255),
-        HeadshotColor = Color3.fromRGB(255, 50, 50),
-        KillColor     = Color3.fromRGB(255, 200, 0),
-    }
-
     local lines = {}
     for i = 1, 4 do
         lines[i] = Drawing.new("Line")
-        lines[i].Thickness = Config.Thickness
-        lines[i].Color     = Config.NormalColor
-        lines[i].Visible   = false
+        lines[i].Thickness = 1.5
+        lines[i].Color = Color3.fromRGB(255, 255, 255)
+        lines[i].Visible = false
     end
 
-    local activeMarkers = {}
-
-    local function DrawMarker(x, y, color)
-        local gap  = Config.Gap
-        local size = Config.Size
-        lines[1].From = Vector2.new(x-gap-size, y-gap-size)
-        lines[1].To   = Vector2.new(x-gap, y-gap)
-        lines[2].From = Vector2.new(x+gap, y-gap)
-        lines[2].To   = Vector2.new(x+gap+size, y-gap-size)
-        lines[3].From = Vector2.new(x-gap-size, y+gap+size)
-        lines[3].To   = Vector2.new(x-gap, y+gap)
-        lines[4].From = Vector2.new(x+gap, y+gap)
-        lines[4].To   = Vector2.new(x+gap+size, y+gap+size)
-        for i = 1, 4 do
-            lines[i].Color   = color
-            lines[i].Visible = true
-        end
+    local killText = NewDrawing("Text", { Size=24, Center=true, Outline=true, Color=Color3.fromRGB(255,50,50), Visible=false })
+    local killOutline = NewDrawing("Text", { Size=26, Center=true, Outline=false, Color=Color3.fromRGB(0,0,0), Visible=false })
+    local flashLines = {}
+    for i = 1, 4 do
+        flashLines[i] = Drawing.new("Line")
+        flashLines[i].Thickness = 4
+        flashLines[i].Color = Color3.fromRGB(255, 0, 0)
+        flashLines[i].Visible = false
     end
 
-    local function HideMarker()
-        for i = 1, 4 do lines[i].Visible = false end
-    end
+    local activeHit = {}
+    local activeKill = {}
 
     local function ShowHitmarker(isHeadshot, isKill)
-        local color = Config.NormalColor
-        if isKill then color = Config.KillColor
-        elseif isHeadshot then color = Config.HeadshotColor end
+        if getgenv().Hitmarker_Enabled == false then return end
+        local color = Color3.fromRGB(255, 255, 255)
+        if isKill then color = Color3.fromRGB(255, 200, 0)
+        elseif isHeadshot then color = Color3.fromRGB(255, 50, 50) end
         local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-        DrawMarker(center.X, center.Y, color)
-        table.insert(activeMarkers, { startTime = tick() })
+        local gap, size = 4, 10
+        lines[1].From = Vector2.new(center.X-gap-size, center.Y-gap-size); lines[1].To = Vector2.new(center.X-gap, center.Y-gap)
+        lines[2].From = Vector2.new(center.X+gap, center.Y-gap);           lines[2].To = Vector2.new(center.X+gap+size, center.Y-gap-size)
+        lines[3].From = Vector2.new(center.X-gap-size, center.Y+gap+size); lines[3].To = Vector2.new(center.X-gap, center.Y+gap)
+        lines[4].From = Vector2.new(center.X+gap, center.Y+gap);           lines[4].To = Vector2.new(center.X+gap+size, center.Y+gap+size)
+        for i = 1, 4 do lines[i].Color = color lines[i].Visible = true end
+        table.insert(activeHit, { startTime = tick() })
+    end
+
+    local function triggerKillEffect()
+        if getgenv().KillEffect_Enabled == false then return end
+        local vp = Camera.ViewportSize
+        local center = Vector2.new(vp.X / 2, vp.Y / 2)
+        killText.Text = "KILL"
+        killText.Position = center
+        killText.Visible = true
+        killOutline.Text = "KILL"
+        killOutline.Position = center
+        killOutline.Visible = true
+        flashLines[1].From = Vector2.new(0, 0); flashLines[1].To = Vector2.new(vp.X, 0)
+        flashLines[2].From = Vector2.new(vp.X, 0); flashLines[2].To = Vector2.new(vp.X, vp.Y)
+        flashLines[3].From = Vector2.new(vp.X, vp.Y); flashLines[3].To = Vector2.new(0, vp.Y)
+        flashLines[4].From = Vector2.new(0, vp.Y); flashLines[4].To = Vector2.new(0, 0)
+        for i = 1, 4 do flashLines[i].Visible = true end
+        local snd = Instance.new("Sound")
+        snd.SoundId = "rbxassetid://131961136"
+        snd.Volume = 1
+        snd.Parent = game:GetService("SoundService")
+        snd:Play()
+        task.delay(2, function() snd:Destroy() end)
+        table.insert(activeKill, { startTime = tick() })
     end
 
     RunService.RenderStepped:Connect(function()
-        if not Config.Enabled then HideMarker() activeMarkers = {} return end
         local now = tick()
-        local anyActive = false
-        for i = #activeMarkers, 1, -1 do
-            if now - activeMarkers[i].startTime >= Config.Duration then
-                table.remove(activeMarkers, i)
+        local anyHit = false
+        for i = #activeHit, 1, -1 do
+            if now - activeHit[i].startTime >= 0.15 then
+                table.remove(activeHit, i)
+            else anyHit = true end
+        end
+        if not anyHit then
+            for i = 1, 4 do lines[i].Visible = false end
+        end
+        for i = #activeKill, 1, -1 do
+            local k = activeKill[i]
+            local progress = (now - k.startTime) / 0.6
+            if progress >= 1 then
+                killText.Visible = false
+                killOutline.Visible = false
+                for j = 1, 4 do flashLines[j].Visible = false end
+                table.remove(activeKill, i)
             else
-                anyActive = true
+                killText.Transparency = progress
+                killOutline.Transparency = progress
+                killText.Size = 24 + math.floor(progress * 10)
+                killOutline.Size = 26 + math.floor(progress * 10)
             end
         end
-        if not anyActive then HideMarker() end
     end)
 
     local hookedCasters = {}
+    local lastHit = 0
 
     local function isEnemyChar(char)
         local plr = Players:GetPlayerFromCharacter(char)
@@ -788,7 +1017,7 @@ do
         return plr.Team ~= lp.Team
     end
 
-    local function hookHitmarkerCasters()
+    local function hookAll()
         for _, obj in pairs(getgc(true)) do
             if type(obj) ~= "function" then continue end
             local ok, ups = pcall(debug.getupvalues, obj)
@@ -806,9 +1035,13 @@ do
                             local hum = char:FindFirstChildOfClass("Humanoid")
                             if not hum then return end
                             if not isEnemyChar(char) then return end
+                            local now = tick()
+                            if now - lastHit < 0.05 then return end
+                            lastHit = now
                             local isHeadshot = (hitPart.Name == "Head")
-                            local isKill     = (hum.Health <= 0)
+                            local isKill = (hum.Health <= 0)
                             ShowHitmarker(isHeadshot, isKill)
+                            if isKill then triggerKillEffect() end
                         end)
                     end
                 end
@@ -818,46 +1051,57 @@ do
 
     task.spawn(function()
         while true do
-            task.wait(5)
-            pcall(hookHitmarkerCasters)
+            task.wait(3)
+            pcall(hookAll)
         end
     end)
 
     task.wait(1)
-    hookHitmarkerCasters()
-    print("[VANTA] hitmarker loaded")
+    hookAll()
+    print("[VANTA] hitmarker + kill effect loaded")
 end
 
 -- ============================================================
--- 6. NO FALL DAMAGE
+-- 8. NO FALL DAMAGE — отключаем LocalScript
 -- ============================================================
 do
-    local function attachStateChanged(char)
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        hum.StateChanged:Connect(function(_, newState)
-            if newState == Enum.HumanoidStateType.Landed then
-                hum:SetAttribute("ClientTeleportTime", DateTime.now().UnixTimestampMillis)
+    local disabledChars = {}
+
+    local function disableFallDamage(char)
+        if not char or disabledChars[char] then return end
+        local fd = char:FindFirstChild("FallDamage")
+        if fd and fd:IsA("LocalScript") then
+            fd.Disabled = true
+            disabledChars[char] = true
+        end
+    end
+
+    local function watchCharacter(char)
+        if not char then return end
+        task.wait(0.3)
+        disableFallDamage(char)
+        char.ChildAdded:Connect(function(child)
+            if child.Name == "FallDamage" and child:IsA("LocalScript") then
+                child.Disabled = true
+                disabledChars[char] = true
             end
         end)
     end
 
-    if lp.Character then attachStateChanged(lp.Character) end
-    lp.CharacterAdded:Connect(function(char)
-        task.wait(0.5)
-        attachStateChanged(char)
-    end)
+    if lp.Character then watchCharacter(lp.Character) end
+    lp.CharacterAdded:Connect(watchCharacter)
+    lp.CharacterRemoving:Connect(function(char) disabledChars[char] = nil end)
 
     print("[VANTA] no fall damage loaded")
 end
 
 -- ============================================================
--- 7. INSTANT RELOAD
+-- 9. INSTANT RELOAD
 -- ============================================================
 do
-    local Config = { Enabled = true, Threshold = 1, Cooldown = 0.15 }
     local gunInstances = {}
     local lastReload = 0
+    local reloadingNow = false
 
     local function findGuns()
         for _, obj in pairs(getgc(true)) do
@@ -880,9 +1124,9 @@ do
     end
 
     local function instantReload()
-        if not Config.Enabled then return end
+        if getgenv().InstantReload_Enabled == false or reloadingNow then return end
         local now = tick()
-        if now - lastReload < Config.Cooldown then return end
+        if now - lastReload < 0.2 then return end
         for gun in pairs(gunInstances) do
             local settings = rawget(gun, "settings")
             local gunTool = rawget(gun, "gunTool")
@@ -891,17 +1135,19 @@ do
                 continue
             end
             local mag = gunTool:GetAttribute("CurrentMagazineCount") or settings.CurrentMagazineCount
-            local magSize = settings.MagazineSize
-            if type(mag) ~= "number" or type(magSize) ~= "number" then continue end
-            if mag <= Config.Threshold and not gun.reloading and not gun.unloading then
+            if type(mag) ~= "number" then continue end
+            if mag <= 1 and not gun.reloading and not gun.unloading then
                 local reloadFn = getReloadMethod(gun)
                 if reloadFn then
                     lastReload = now
+                    reloadingNow = true
                     task.spawn(function()
                         local wasEquipping = gun.equipping
                         gun.equipping = false
                         pcall(reloadFn, gun)
                         gun.equipping = wasEquipping
+                        task.wait(2)
+                        reloadingNow = false
                     end)
                 end
             end
@@ -914,13 +1160,9 @@ do
         gunInstances = {}
         findGuns()
     end)
-    if lp.Character then
-        task.wait(0.5)
-        findGuns()
-    end
     task.spawn(function()
         while true do
-            task.wait(0.1)
+            task.wait(0.2)
             pcall(instantReload)
         end
     end)
@@ -934,30 +1176,129 @@ do
 end
 
 -- ============================================================
--- 8. ANTI-DECONTAMINATION
+-- 10. ANTI-FLASH
 -- ============================================================
 do
-    local function disableDecon()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Script") or v:IsA("LocalScript") then
+    local function clearFlash()
+        if getgenv().AntiFlash_Enabled == false then return end
+        local pg = lp:FindFirstChildOfClass("PlayerGui")
+        if not pg then return end
+        for _, v in pairs(pg:GetDescendants()) do
+            if v:IsA("ImageLabel") or v:IsA("Frame") or v:IsA("TextLabel") then
                 local n = v.Name:lower()
-                if n:find("decon") or n:find("decontam") then
-                    v.Disabled = true
+                if n:find("flash") or n:find("blind") or n:find("white")
+                    or n:find("blackout") or n:find("black") then
+                    v.Visible = false
                 end
             end
         end
     end
-    task.spawn(function()
-        task.wait(3)
-        pcall(disableDecon)
-    end)
+
     task.spawn(function()
         while true do
-            task.wait(10)
-            pcall(disableDecon)
+            task.wait(0.05)
+            pcall(clearFlash)
         end
     end)
-    print("[VANTA] anti-decon loaded")
+
+    print("[VANTA] anti-flash loaded")
 end
 
-print("[VANTA] all loaded")
+-- ============================================================
+-- 11. WEAPON INFO
+-- ============================================================
+do
+    local weaponTexts = {}
+
+    local function isEnemy(plr)
+        if not lp.Team or not plr.Team then return true end
+        return plr.Team ~= lp.Team
+    end
+
+    local function createText(plr)
+        if weaponTexts[plr] then return weaponTexts[plr] end
+        weaponTexts[plr] = NewDrawing("Text", {
+            Size = 11, Center = true, Outline = true,
+            Color = Color3.fromRGB(255, 200, 100), Visible = false,
+        })
+        return weaponTexts[plr]
+    end
+
+    local function getWeaponName(char)
+        if not char then return nil end
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then return tool.Name end
+        return nil
+    end
+
+    local function update()
+        if getgenv().WeaponInfo_Enabled == false then
+            for _, t in pairs(weaponTexts) do t.Visible = false end
+            return
+        end
+        for plr, text in pairs(weaponTexts) do
+            if plr == lp or not plr.Character then text.Visible = false continue end
+            if not isEnemy(plr) then text.Visible = false continue end
+            local char = plr.Character
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not hum or hum.Health <= 0 then text.Visible = false continue end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then text.Visible = false continue end
+            local dist = (Camera.CFrame.Position - root.Position).Magnitude
+            if dist > 300 then text.Visible = false continue end
+            local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 2, 0))
+            if not onScreen or screenPos.Z < 0 then text.Visible = false continue end
+            local weapon = getWeaponName(char)
+            if not weapon then text.Visible = false continue end
+            text.Text = weapon
+            text.Position = Vector2.new(screenPos.X, screenPos.Y + 50)
+            text.Visible = true
+        end
+    end
+
+    local function attach(plr)
+        if plr == lp then return end
+        createText(plr)
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do attach(plr) end
+    Players.PlayerAdded:Connect(attach)
+    Players.PlayerRemoving:Connect(function(plr)
+        if weaponTexts[plr] then
+            pcall(function() weaponTexts[plr]:Remove() end)
+            weaponTexts[plr] = nil
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(0.1)
+            pcall(update)
+        end
+    end)
+
+    print("[VANTA] weapon info loaded")
+end
+
+-- ============================================================
+-- WATERMARK
+-- ============================================================
+do
+    local watermark = Drawing.new("Text")
+    watermark.Text = "VANTA v8"
+    watermark.Size = 14
+    watermark.Color = Color3.fromRGB(255, 255, 255)
+    watermark.Outline = true
+    watermark.Position = Vector2.new(0, 10)
+    watermark.Visible = true
+    watermark.Center = false
+
+    RunService.RenderStepped:Connect(function()
+        local vp = Camera.ViewportSize
+        watermark.Position = Vector2.new(vp.X - 80, 10)
+    end)
+
+    print("[VANTA] watermark loaded")
+end
+
+print("[VANTA] all loaded v8")
