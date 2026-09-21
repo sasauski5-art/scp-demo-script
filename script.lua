@@ -1,9 +1,8 @@
 -- ============================================================
--- VANTA Script by sasauski5
--- GitHub: github.com/sasauski5-art/scp-demo-script
+-- VANTA Script
 -- Do not redistribute without credit
 -- ============================================================
--- VANTA full: silent + ESP + NoRecoil + RapidFire + Hitmarker + NoFallDamage + InstantReload + AntiDecon + GrenadeESP + GrenadeTimer
+-- VANTA full: silent + ESP + NoRecoil + RapidFire + Hitmarker + NoFallDamage + InstantReload + AntiDecon
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -856,7 +855,7 @@ end
 -- 7. INSTANT RELOAD
 -- ============================================================
 do
-    local Config = { Enabled = true, Threshold = 1, Cooldown = 0.1 }
+    local Config = { Enabled = true, Threshold = 1, Cooldown = 0.15 }
     local gunInstances = {}
     local lastReload = 0
 
@@ -927,7 +926,7 @@ do
     end)
     task.spawn(function()
         while true do
-            task.wait(3)
+            task.wait(5)
             pcall(findGuns)
         end
     end)
@@ -959,218 +958,6 @@ do
         end
     end)
     print("[VANTA] anti-decon loaded")
-end
-
--- ============================================================
--- 9. GRENADE ESP
--- ============================================================
-do
-    local Config = { Enabled = true, MaxDistance = 300, LineColor = Color3.fromRGB(255, 100, 0), TextColor = Color3.fromRGB(255, 200, 0) }
-    local grenades = {}
-
-    local function isGrenade(inst)
-        if not inst:IsA("BasePart") and not inst:IsA("Model") then return false end
-        local n = inst.Name:lower()
-        if n:find("grenade") or n:find("frag") or n:find("flashbang") or n:find("scp-018") then return true end
-        if inst.Name == "LiveGrenade" then return true end
-        return false
-    end
-
-    local function getPos(g)
-        if g:IsA("BasePart") then return g.Position end
-        if g:IsA("Model") then
-            local p = g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")
-            if p then return p.Position end
-        end
-        return nil
-    end
-
-    local function createGrenadeESP(g)
-        if grenades[g] then return grenades[g] end
-        local data = {
-            Line = NewDrawing("Line", { Thickness=2, Color=Config.LineColor, Visible=false }),
-            Dot = NewDrawing("Circle", { Thickness=1, Filled=true, NumSides=16, Radius=5, Color=Config.LineColor, Visible=false }),
-            Text = NewDrawing("Text", { Size=12, Center=true, Outline=true, Color=Config.TextColor, Visible=false }),
-            LastText = nil,
-        }
-        grenades[g] = data
-        return data
-    end
-
-    local function destroyGrenadeESP(data)
-        if not data then return end
-        if data.Line then pcall(function() data.Line:Remove() end) end
-        if data.Dot then pcall(function() data.Dot:Remove() end) end
-        if data.Text then pcall(function() data.Text:Remove() end) end
-    end
-
-    local function updateGrenadeESP()
-        if not Config.Enabled then return end
-        local camPos = Camera.CFrame.Position
-        local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        for g, data in pairs(grenades) do
-            if not g or not g.Parent then
-                destroyGrenadeESP(data)
-                grenades[g] = nil
-                continue
-            end
-            local pos = getPos(g)
-            if not pos then
-                data.Line.Visible = false
-                data.Dot.Visible = false
-                data.Text.Visible = false
-                continue
-            end
-            local dist = (camPos - pos).Magnitude
-            if dist > Config.MaxDistance then
-                data.Line.Visible = false
-                data.Dot.Visible = false
-                data.Text.Visible = false
-                continue
-            end
-            local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
-            if not onScreen or screenPos.Z < 0 then
-                data.Line.Visible = false
-                data.Dot.Visible = false
-                data.Text.Visible = false
-                continue
-            end
-            data.Line.From = Vector2.new(center.X, Camera.ViewportSize.Y)
-            data.Line.To = Vector2.new(screenPos.X, screenPos.Y)
-            data.Line.Color = Config.LineColor
-            data.Line.Visible = true
-            data.Dot.Position = Vector2.new(screenPos.X, screenPos.Y)
-            data.Dot.Color = Config.LineColor
-            data.Dot.Visible = true
-            local text = string.format("GRENADE [%.0fm]", dist)
-            if data.LastText ~= text then
-                data.Text.Text = text
-                data.LastText = text
-            end
-            data.Text.Position = Vector2.new(screenPos.X, screenPos.Y - 20)
-            data.Text.Color = Config.TextColor
-            data.Text.Visible = true
-        end
-    end
-
-    local function scanGrenades()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if isGrenade(v) and not grenades[v] then
-                createGrenadeESP(v)
-            end
-        end
-    end
-
-    task.spawn(function() scanGrenades() end)
-    workspace.DescendantAdded:Connect(function(child)
-        if isGrenade(child) then
-            task.wait(0.1)
-            createGrenadeESP(child)
-        end
-    end)
-    task.spawn(function()
-        while true do
-            task.wait(3)
-            pcall(scanGrenades)
-        end
-    end)
-    RunService.RenderStepped:Connect(function() pcall(updateGrenadeESP) end)
-    print("[VANTA] grenade ESP loaded")
-end
-
--- ============================================================
--- 10. GRENADE TIMER
--- ============================================================
-do
-    local Config = { Enabled = true, MaxDistance = 200, TextSize = 14, Color = Color3.fromRGB(255, 50, 50), WarnColor = Color3.fromRGB(255, 200, 0), WarnTime = 1.5 }
-    local GRENADE_FUSE = 4
-    local grenadeTimers = {}
-
-    local function isLiveGrenade(inst)
-        if inst.Name == "LiveGrenade" then return true end
-        if inst:IsA("BasePart") and inst.Name:lower():find("grenade") then
-            local parent = inst.Parent
-            if parent and parent:IsA("Model") and parent.Name == "LiveGrenade" then return true end
-        end
-        return false
-    end
-
-    local function getPos(g)
-        if g:IsA("BasePart") then return g.Position end
-        if g:IsA("Model") then
-            local p = g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")
-            if p then return p.Position end
-        end
-        return nil
-    end
-
-    local function createTimer(g)
-        if grenadeTimers[g] then return grenadeTimers[g] end
-        local text = NewDrawing("Text", { Size = Config.TextSize, Center = true, Outline = true, Color = Config.Color, Visible = false })
-        local data = { Text = text, SpawnTime = tick(), LastText = nil }
-        grenadeTimers[g] = data
-        return data
-    end
-
-    local function destroyTimer(data)
-        if data and data.Text then
-            pcall(function() data.Text:Remove() end)
-        end
-    end
-
-    local function updateTimers()
-        if not Config.Enabled then return end
-        local camPos = Camera.CFrame.Position
-        for g, data in pairs(grenadeTimers) do
-            if not g or not g.Parent then
-                destroyTimer(data)
-                grenadeTimers[g] = nil
-                continue
-            end
-            local pos = getPos(g)
-            if not pos then data.Text.Visible = false continue end
-            local dist = (camPos - pos).Magnitude
-            if dist > Config.MaxDistance then data.Text.Visible = false continue end
-            local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
-            if not onScreen or screenPos.Z < 0 then data.Text.Visible = false continue end
-
-            local elapsed = tick() - data.SpawnTime
-            local remaining = math.max(0, GRENADE_FUSE - elapsed)
-            local text = string.format("%.1fs", remaining)
-            if data.LastText ~= text then
-                data.Text.Text = text
-                data.LastText = text
-            end
-            if remaining < Config.WarnTime then data.Text.Color = Config.WarnColor
-            else data.Text.Color = Config.Color end
-            data.Text.Position = Vector2.new(screenPos.X, screenPos.Y - 30)
-            data.Text.Visible = true
-        end
-    end
-
-    local function scanTimers()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if isLiveGrenade(v) and not grenadeTimers[v] then
-                createTimer(v)
-            end
-        end
-    end
-
-    task.spawn(function() scanTimers() end)
-    workspace.DescendantAdded:Connect(function(child)
-        if isLiveGrenade(child) then
-            task.wait(0.05)
-            createTimer(child)
-        end
-    end)
-    task.spawn(function()
-        while true do
-            task.wait(2)
-            pcall(scanTimers)
-        end
-    end)
-    RunService.RenderStepped:Connect(function() pcall(updateTimers) end)
-    print("[VANTA] grenade timer loaded")
 end
 
 print("[VANTA] all loaded")
