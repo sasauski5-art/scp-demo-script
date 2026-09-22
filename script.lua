@@ -1,7 +1,6 @@
 -- ============================================================
--- VANTA Script v9
--- fixes: norecoil crash, silent stability, curshts typo,
---        looksLikeWeapon, hitmarker origin, backpack rapidfire
+-- VANTA Script v10 — wallbang silent
+-- silent: synthetic RayResult, обход workspace:Raycast
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -17,7 +16,7 @@ local function NewDrawing(dtype, props)
     return d
 end
 
-print("[VANTA] loading v9...")
+print("[VANTA] loading v10 (wallbang)...")
 
 -- ============================================================
 -- PEALLIB MENU
@@ -71,6 +70,7 @@ local SilentBox = Aim:AddLeftGroupbox('Silent Aim')
 SilentBox:AddToggle('Silent_Enabled',   { Text = 'Enable Silent', Default = true, Callback = function(v) getgenv().Silent_Enabled = v end })
 SilentBox:AddSlider('Silent_FOV',       { Text = 'FOV',           Default = 125, Min = 30, Max = 360, Rounding = 0, Callback = function(v) getgenv().Silent_FOV = v end })
 SilentBox:AddToggle('Silent_TeamCheck', { Text = 'Team Check',    Default = true, Callback = function(v) getgenv().Silent_TeamCheck = v end })
+SilentBox:AddToggle('Silent_Wallbang',  { Text = 'Wallbang (сквозь стены)', Default = true, Callback = function(v) getgenv().Silent_Wallbang = v end })
 
 local RecoilBox = Aim:AddLeftGroupbox('No Recoil')
 RecoilBox:AddToggle('NoRecoil_Enabled', { Text = 'Enable No Recoil', Default = true, Callback = function(v) getgenv().NoRecoil_Enabled = v end })
@@ -225,7 +225,9 @@ do
 end
 
 -- ============================================================
--- 3. SILENT AIM — фикс: все Connections, автодетект поля, origin firePoint
+-- 3. SILENT AIM — WALLBANG
+--    подмена RayResult без workspace:Raycast
+--    + hookfunction на caster.Fire как fallback
 -- ============================================================
 do
     local function isEnemy(plr)
@@ -283,6 +285,7 @@ do
         return nil
     end
 
+    -- только для проверки видимости в ESP / при отключённом wallbang
     local function hasLineOfSight(part)
         local origin = Camera.CFrame.Position
         local direction = part.Position - origin
@@ -296,6 +299,7 @@ do
 
     local hookedCasters = {}
     local casterToInstance = {}
+    local hookedFire = {}
     local cachedTarget, cachedTargetTime = nil, 0
 
     local function findInstanceFor(caster)
@@ -319,6 +323,7 @@ do
             cachedTarget = nil
         end
         local fov = getgenv().Silent_FOV or 125
+        local wallbang = getgenv().Silent_Wallbang ~= false
         local closest, shortest = nil, fov
         local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
         for _, plr in pairs(Players:GetPlayers()) do
@@ -336,7 +341,8 @@ do
             if rootDist > fov + 100 then continue end
             local part = getHitPart(plr)
             if not part then continue end
-            if not hasLineOfSight(part) then continue end
+            -- wallbang: пропускаем проверку видимости
+            if not wallbang and not hasLineOfSight(part) then continue end
             local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
             if not onScreen then continue end
             local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
@@ -347,7 +353,20 @@ do
         return closest
     end
 
-    -- возвращаем имя поля делегата, если оно нам известно
+    -- синтетический RayResult — НЕ считаем геометрию
+    local function buildSyntheticResult(target, origin)
+        local pos = target.Position
+        local dir = (pos - origin)
+        local dist = dir.Magnitude
+        return {
+            Instance = target,
+            Position = pos,
+            Normal   = -dir.Unit,
+            Distance = dist,
+            Material = Enum.Material.Plastic,
+        }
+    end
+
     local function delegateField(conn)
         if type(conn.Delegate) == "function" then return "Delegate" end
         if type(conn.func)     == "function" then return "func" end
@@ -367,17 +386,30 @@ do
                 else
                     origin = Camera.CFrame.Position
                 end
-                local direction = target.Position - origin
-                local params = RaycastParams.new()
-                params.FilterType = Enum.RaycastFilterType.Exclude
-                params.FilterDescendantsInstances = { lp.Character, Camera }
-                local newResult = workspace:Raycast(origin, direction, params)
-                if newResult then
-                    return oldDelegate(self, newResult, velocity, bullet, id)
-                end
+                -- wallbang: подсовываем синтетический результат, не считаем стены
+                local synthetic = buildSyntheticResult(target, origin)
+                return oldDelegate(self, synthetic, velocity, bullet, id)
             end
             return oldDelegate(self, rayResult, velocity, bullet, id)
         end
+    end
+
+    local function hookCasterFire(caster)
+        if hookedFire[caster] then return end
+        local fireFn = caster.Fire
+        if type(fireFn) ~= "function" then return end
+        if type(hookfunction) ~= "function" then return end
+        local ok = pcall(function()
+            local oldFire = fireFn
+            caster.Fire = hookfunction(fireFn, function(self, origin, direction, maxDist, behavior, bulletId)
+                local target = getTargetPart()
+                if target and origin then
+                    direction = (target.Position - origin).Unit
+                end
+                return oldFire(self, origin, direction, maxDist, behavior, bulletId)
+            end)
+        end)
+        if ok then hookedFire[caster] = true end
     end
 
     local function hookAllCasters()
@@ -389,6 +421,7 @@ do
             for _, v in pairs(ups) do
                 if type(v) == "table" and rawget(v, "caster") then
                     local caster = rawget(v, "caster")
+                    -- подмена RayHit connections
                     if not hookedCasters[caster] then
                         local rayHit = caster.RayHit
                         if rayHit and rayHit.Connections then
@@ -406,6 +439,8 @@ do
                             if hookedThis then hookedCasters[caster] = true end
                         end
                     end
+                    -- fallback: hookfunction на caster.Fire
+                    pcall(hookCasterFire, caster)
                 end
             end
         end
@@ -446,7 +481,7 @@ do
 
     task.wait(1)
     local n = hookAllCasters()
-    print("[VANTA] silent loaded — hooked", n, "connections")
+    print("[VANTA] silent + wallbang loaded — hooked", n, "connections")
 end
 
 -- ============================================================
@@ -659,7 +694,7 @@ do
 end
 
 -- ============================================================
--- 5. NO RECOIL — фикс: table.clear → подмена содержимого
+-- 5. NO RECOIL
 -- ============================================================
 do
     local cachedTables = {}
@@ -679,7 +714,6 @@ do
     local function clearOne(obj)
         local rp = rawget(obj, "recoilPattern")
         if type(rp) ~= "table" then return false end
-        -- заменяем содержимое на один безопасный элемент — игра не падает в ShootRecoil
         for i = #rp, 1, -1 do rp[i] = nil end
         rp[1] = {table.unpack(SAFE_RECOIL)}
         if rawget(obj, "curshots") ~= nil then obj.curshots = 0 end
@@ -748,7 +782,7 @@ do
 end
 
 -- ============================================================
--- 6. RAPID FIRE — фикс: патч и на backpack
+-- 6. RAPID FIRE
 -- ============================================================
 do
     local function patchSettings(t)
@@ -1027,7 +1061,7 @@ do
 end
 
 -- ============================================================
--- 10. ANTI-FLASH — точечно через DescendantAdded
+-- 10. ANTI-FLASH
 -- ============================================================
 do
     local function tryHide(obj)
@@ -1125,7 +1159,7 @@ end
 -- ============================================================
 do
     local watermark = Drawing.new("Text")
-    watermark.Text = "VANTA v9"
+    watermark.Text = "VANTA v10"
     watermark.Size = 14
     watermark.Color = Color3.fromRGB(255, 255, 255)
     watermark.Outline = true
@@ -1139,4 +1173,4 @@ do
     print("[VANTA] watermark loaded")
 end
 
-print("[VANTA] all loaded v9")
+print("[VANTA] all loaded v10")
