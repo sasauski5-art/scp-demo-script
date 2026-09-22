@@ -1,6 +1,8 @@
 -- ============================================================
--- VANTA Script v10 — wallbang silent
--- silent: synthetic RayResult, обход workspace:Raycast
+-- VANTA Script v10.1 — оптимизация
+-- один общий rescan вместо множества getgc
+-- UpdateESP на 30 Hz
+-- hookCasterFire под тумблером
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -16,7 +18,18 @@ local function NewDrawing(dtype, props)
     return d
 end
 
-print("[VANTA] loading v10 (wallbang)...")
+-- бенчмарк
+local DEBUG_PERF = false
+local function bench(name, fn)
+    if not DEBUG_PERF then return fn() end
+    local t0 = tick()
+    local r = fn()
+    local dt = (tick() - t0) * 1000
+    if dt > 2 then print(string.format("[VANTA perf] %s: %.1f ms", name, dt)) end
+    return r
+end
+
+print("[VANTA] loading v10.1 (optimized)...")
 
 -- ============================================================
 -- PEALLIB MENU
@@ -70,7 +83,8 @@ local SilentBox = Aim:AddLeftGroupbox('Silent Aim')
 SilentBox:AddToggle('Silent_Enabled',   { Text = 'Enable Silent', Default = true, Callback = function(v) getgenv().Silent_Enabled = v end })
 SilentBox:AddSlider('Silent_FOV',       { Text = 'FOV',           Default = 125, Min = 30, Max = 360, Rounding = 0, Callback = function(v) getgenv().Silent_FOV = v end })
 SilentBox:AddToggle('Silent_TeamCheck', { Text = 'Team Check',    Default = true, Callback = function(v) getgenv().Silent_TeamCheck = v end })
-SilentBox:AddToggle('Silent_Wallbang',  { Text = 'Wallbang (сквозь стены)', Default = true, Callback = function(v) getgenv().Silent_Wallbang = v end })
+SilentBox:AddToggle('Silent_Wallbang',  { Text = 'Wallbang',      Default = true, Callback = function(v) getgenv().Silent_Wallbang = v end })
+SilentBox:AddToggle('Silent_HookFire',  { Text = 'Hook caster.Fire (медленно)', Default = false, Callback = function(v) getgenv().Silent_HookFire = v end })
 
 local RecoilBox = Aim:AddLeftGroupbox('No Recoil')
 RecoilBox:AddToggle('NoRecoil_Enabled', { Text = 'Enable No Recoil', Default = true, Callback = function(v) getgenv().NoRecoil_Enabled = v end })
@@ -95,6 +109,9 @@ FallBox:AddToggle('NoFallDamage_Enabled', { Text = 'No Fall Damage', Default = t
 
 local WeaponBox = Misc:AddRightGroupbox('Weapon Info')
 WeaponBox:AddToggle('WeaponInfo_Enabled', { Text = 'Show Weapon', Default = true, Callback = function(v) getgenv().WeaponInfo_Enabled = v end })
+
+local PerfBox = Misc:AddRightGroupbox('Debug')
+PerfBox:AddToggle('Perf_Enabled', { Text = 'Perf logging', Default = false, Callback = function(v) DEBUG_PERF = v; print("[VANTA] perf", v and "on" or "off") end })
 
 -- ============================================================
 -- SETTINGS
@@ -173,7 +190,7 @@ do
 
     task.spawn(function()
         while true do
-            task.wait(0.05)
+            task.wait(0.1)
             currentFOV = getgenv().FOV_Default or 90
             if not isWeaponZooming and Camera.FieldOfView ~= currentFOV
                and Camera.FieldOfView ~= (getgenv().FOV_Zoom or 30) then
@@ -219,73 +236,87 @@ do
     lp.CharacterAdded:Connect(applyNoFog)
 
     task.spawn(function()
-        while true do task.wait(0.5); pcall(applyNoFog) end
+        while true do task.wait(1); pcall(applyNoFog) end
     end)
     print("[VANTA] no fog loaded")
 end
 
 -- ============================================================
--- 3. SILENT AIM — WALLBANG
---    подмена RayResult без workspace:Raycast
---    + hookfunction на caster.Fire как fallback
+-- ОБЩИЙ РЕЕСТР ДЛЯ RESCAN
+-- ============================================================
+local REG = {
+    silentHookedCasters = {},   -- [caster] = true
+    casterToInstance    = {},   -- [caster] = t_8
+    hookedFire          = {},   -- [caster] = true
+    recoilTables        = {},   -- [obj] = true
+    rapidSettings       = {},   -- [obj] = true
+    gunInstances        = {},   -- [obj] = true
+    hitHookedCasters    = {},   -- [caster] = true
+}
+
+-- ============================================================
+-- 3. UTIL-ФУНКЦИИ, ОБЩИЕ ДЛЯ МОДУЛЕЙ
+-- ============================================================
+local function isEnemy(plr)
+    if not lp.Team or not plr.Team then return true end
+    return plr.Team ~= lp.Team
+end
+
+local function asPart(inst)
+    if not inst then return nil end
+    if inst:IsA("BasePart") then return inst end
+    if inst:IsA("Attachment") and inst.Parent and inst.Parent:IsA("BasePart") then
+        return inst.Parent
+    end
+    return nil
+end
+
+local function isSCP(plr)
+    if plr.Team and plr.Team.Name == "SCP" then return true end
+    local char = plr.Character
+    if not char then return false end
+    if char:FindFirstChild("Body") and char:FindFirstChild("Mask") then return true end
+    if char:FindFirstChild("Matthew") then return true end
+    if char:FindFirstChild("SCP") then return true end
+    if char:FindFirstChild("Collisions") and char.Collisions:FindFirstChild("spine") then return true end
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("MeshPart") then
+            local n = v.Name:lower()
+            if n:find("cube") or n:find("scp939") or n:find("neutre") then return true end
+        end
+    end
+    return false
+end
+
+local function getHitPart(plr)
+    local char = plr.Character
+    if not char then return nil end
+    if isSCP(plr) then
+        local collisions = char:FindFirstChild("Collisions")
+        if collisions then
+            local headCol = asPart(collisions:FindFirstChild("Head"))
+            if headCol then return headCol end
+        end
+        local fp = asPart(char:FindFirstChild("FacePoint"));  if fp then return fp end
+        local h  = asPart(char:FindFirstChild("Head"));       if h  then return h  end
+        local ut = asPart(char:FindFirstChild("UpperTorso")); if ut then return ut end
+        local sp = collisions and asPart(collisions:FindFirstChild("spine")); if sp then return sp end
+        local mt = asPart(char:FindFirstChild("Matthew"));    if mt then return mt end
+        local bd = asPart(char:FindFirstChild("Body"));       if bd then return bd end
+        local mk = asPart(char:FindFirstChild("Mask"));       if mk then return mk end
+    else
+        local h  = asPart(char:FindFirstChild("Head"));       if h  then return h  end
+        local ut = asPart(char:FindFirstChild("UpperTorso")); if ut then return ut end
+    end
+    return nil
+end
+
+-- ============================================================
+-- 4. SILENT AIM + WALLBANG
 -- ============================================================
 do
-    local function isEnemy(plr)
-        if getgenv().Silent_TeamCheck == false then return true end
-        if not lp.Team or not plr.Team then return true end
-        return plr.Team ~= lp.Team
-    end
+    local cachedTarget, cachedTargetTime = nil, 0
 
-    local function asPart(inst)
-        if not inst then return nil end
-        if inst:IsA("BasePart") then return inst end
-        if inst:IsA("Attachment") and inst.Parent and inst.Parent:IsA("BasePart") then
-            return inst.Parent
-        end
-        return nil
-    end
-
-    local function isSCP(plr)
-        if plr.Team and plr.Team.Name == "SCP" then return true end
-        local char = plr.Character
-        if not char then return false end
-        if char:FindFirstChild("Body") and char:FindFirstChild("Mask") then return true end
-        if char:FindFirstChild("Matthew") then return true end
-        if char:FindFirstChild("SCP") then return true end
-        if char:FindFirstChild("Collisions") and char.Collisions:FindFirstChild("spine") then return true end
-        for _, v in pairs(char:GetChildren()) do
-            if v:IsA("MeshPart") then
-                local n = v.Name:lower()
-                if n:find("cube") or n:find("scp939") or n:find("neutre") then return true end
-            end
-        end
-        return false
-    end
-
-    local function getHitPart(plr)
-        local char = plr.Character
-        if not char then return nil end
-        if isSCP(plr) then
-            local collisions = char:FindFirstChild("Collisions")
-            if collisions then
-                local headCol = asPart(collisions:FindFirstChild("Head"))
-                if headCol then return headCol end
-            end
-            local fp = asPart(char:FindFirstChild("FacePoint"));  if fp then return fp end
-            local h  = asPart(char:FindFirstChild("Head"));       if h  then return h  end
-            local ut = asPart(char:FindFirstChild("UpperTorso")); if ut then return ut end
-            local sp = collisions and asPart(collisions:FindFirstChild("spine")); if sp then return sp end
-            local mt = asPart(char:FindFirstChild("Matthew"));    if mt then return mt end
-            local bd = asPart(char:FindFirstChild("Body"));       if bd then return bd end
-            local mk = asPart(char:FindFirstChild("Mask"));       if mk then return mk end
-        else
-            local h  = asPart(char:FindFirstChild("Head"));       if h  then return h  end
-            local ut = asPart(char:FindFirstChild("UpperTorso")); if ut then return ut end
-        end
-        return nil
-    end
-
-    -- только для проверки видимости в ESP / при отключённом wallbang
     local function hasLineOfSight(part)
         local origin = Camera.CFrame.Position
         local direction = part.Position - origin
@@ -295,22 +326,6 @@ do
         local result = workspace:Raycast(origin, direction, params)
         if not result then return true end
         return result.Instance == part or result.Instance:IsDescendantOf(part.Parent)
-    end
-
-    local hookedCasters = {}
-    local casterToInstance = {}
-    local hookedFire = {}
-    local cachedTarget, cachedTargetTime = nil, 0
-
-    local function findInstanceFor(caster)
-        if casterToInstance[caster] then return casterToInstance[caster] end
-        for _, obj in pairs(getgc(true)) do
-            if type(obj) == "table" and rawget(obj, "caster") == caster then
-                casterToInstance[caster] = obj
-                return obj
-            end
-        end
-        return nil
     end
 
     local function getTargetPart()
@@ -341,7 +356,6 @@ do
             if rootDist > fov + 100 then continue end
             local part = getHitPart(plr)
             if not part then continue end
-            -- wallbang: пропускаем проверку видимости
             if not wallbang and not hasLineOfSight(part) then continue end
             local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
             if not onScreen then continue end
@@ -353,16 +367,14 @@ do
         return closest
     end
 
-    -- синтетический RayResult — НЕ считаем геометрию
     local function buildSyntheticResult(target, origin)
         local pos = target.Position
-        local dir = (pos - origin)
-        local dist = dir.Magnitude
+        local dir = pos - origin
         return {
             Instance = target,
             Position = pos,
             Normal   = -dir.Unit,
-            Distance = dist,
+            Distance = dir.Magnitude,
             Material = Enum.Material.Plastic,
         }
     end
@@ -379,14 +391,13 @@ do
         return function(self, rayResult, velocity, bullet, id)
             local target = getTargetPart()
             if target then
-                local inst = findInstanceFor(caster)
+                local inst = REG.casterToInstance[caster]
                 local origin
                 if inst and inst.firePoint and inst.firePoint.WorldPosition then
                     origin = inst.firePoint.WorldPosition
                 else
                     origin = Camera.CFrame.Position
                 end
-                -- wallbang: подсовываем синтетический результат, не считаем стены
                 local synthetic = buildSyntheticResult(target, origin)
                 return oldDelegate(self, synthetic, velocity, bullet, id)
             end
@@ -395,10 +406,11 @@ do
     end
 
     local function hookCasterFire(caster)
-        if hookedFire[caster] then return end
+        if REG.hookedFire[caster] then return end
+        if getgenv().Silent_HookFire ~= true then return end
+        if type(hookfunction) ~= "function" then return end
         local fireFn = caster.Fire
         if type(fireFn) ~= "function" then return end
-        if type(hookfunction) ~= "function" then return end
         local ok = pcall(function()
             local oldFire = fireFn
             caster.Fire = hookfunction(fireFn, function(self, origin, direction, maxDist, behavior, bulletId)
@@ -409,92 +421,47 @@ do
                 return oldFire(self, origin, direction, maxDist, behavior, bulletId)
             end)
         end)
-        if ok then hookedFire[caster] = true end
+        if ok then REG.hookedFire[caster] = true end
     end
 
-    local function hookAllCasters()
-        local count = 0
-        for _, obj in pairs(getgc(true)) do
-            if type(obj) ~= "function" then continue end
-            local ok, ups = pcall(debug.getupvalues, obj)
-            if not ok or not ups then continue end
-            for _, v in pairs(ups) do
-                if type(v) == "table" and rawget(v, "caster") then
-                    local caster = rawget(v, "caster")
-                    -- подмена RayHit connections
-                    if not hookedCasters[caster] then
-                        local rayHit = caster.RayHit
-                        if rayHit and rayHit.Connections then
-                            local hookedThis = false
-                            for _, conn in ipairs(rayHit.Connections) do
-                                local field = delegateField(conn)
-                                if field and not conn._vantaHooked then
-                                    local old = conn[field]
-                                    conn[field] = buildDelegate(old, caster)
-                                    conn._vantaHooked = true
-                                    hookedThis = true
-                                    count += 1
-                                end
-                            end
-                            if hookedThis then hookedCasters[caster] = true end
-                        end
+    -- вызывается из общего rescan; obj = элемент getgc(true)
+    local function tryHookCasterFromObj(obj)
+        if type(obj) ~= "table" then return end
+        local caster = rawget(obj, "caster")
+        if not caster then return end
+        REG.casterToInstance[caster] = obj
+
+        if not REG.silentHookedCasters[caster] then
+            local rayHit = caster.RayHit
+            if rayHit and rayHit.Connections then
+                local hooked = false
+                for _, conn in ipairs(rayHit.Connections) do
+                    local field = delegateField(conn)
+                    if field and not conn._vantaHooked then
+                        local old = conn[field]
+                        conn[field] = buildDelegate(old, caster)
+                        conn._vantaHooked = true
+                        hooked = true
                     end
-                    -- fallback: hookfunction на caster.Fire
-                    pcall(hookCasterFire, caster)
                 end
+                if hooked then REG.silentHookedCasters[caster] = true end
             end
         end
-        return count
+
+        pcall(hookCasterFire, caster)
     end
 
-    local function watchCharacter(char)
-        if not char then return end
-        char.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") then task.wait(0.3); hookAllCasters() end
-        end)
-        char.ChildRemoved:Connect(function(child)
-            if child:IsA("Tool") then task.wait(0.3); hookAllCasters() end
-        end)
-    end
-
-    local function watchBackpack(bp)
-        if not bp then return end
-        bp.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") then task.wait(0.3); hookAllCasters() end
-        end)
-    end
-
-    if lp.Character then watchCharacter(lp.Character) end
-    if lp.Backpack then watchBackpack(lp.Backpack) end
-    lp.CharacterAdded:Connect(function(char)
-        watchCharacter(char)
-        task.wait(1)
-        hookAllCasters()
-    end)
-    lp.ChildAdded:Connect(function(child)
-        if child.Name == "Backpack" then watchBackpack(child) end
-    end)
-
-    task.spawn(function()
-        while true do task.wait(5); pcall(hookAllCasters) end
-    end)
-
-    task.wait(1)
-    local n = hookAllCasters()
-    print("[VANTA] silent + wallbang loaded — hooked", n, "connections")
+    -- экспорт в общий rescan
+    _G.__vanta_tryHookCaster = tryHookCasterFromObj
+    _G.__vanta_getTargetPart = getTargetPart
+    print("[VANTA] silent + wallbang loaded")
 end
 
 -- ============================================================
--- 4. ESP
+-- 5. ESP — 30 Hz
 -- ============================================================
 do
     local espCache = {}
-
-    local function isEnemy(plr)
-        if getgenv().ESP_TeamCheck == false then return true end
-        if not lp.Team or not plr.Team then return true end
-        return plr.Team ~= lp.Team
-    end
 
     local function getTeamColor(plr)
         if not isEnemy(plr) then return Color3.fromRGB(60, 255, 60) end
@@ -689,147 +656,102 @@ do
         if data then DestroyESP(data); espCache[plr] = nil end
     end)
 
-    RunService.RenderStepped:Connect(function() pcall(UpdateESP) end)
-    print("[VANTA] player ESP loaded")
+    -- отдельный поток 30 Hz, не RenderStepped
+    task.spawn(function()
+        while true do
+            task.wait(1/30)
+            pcall(UpdateESP)
+        end
+    end)
+    print("[VANTA] player ESP loaded (30 Hz)")
 end
 
 -- ============================================================
--- 5. NO RECOIL
+-- 6. NO RECOIL — только через общий rescan
 -- ============================================================
 do
-    local cachedTables = {}
-    local lastToolHash = 0
-
-    local function looksLikeWeapon(obj)
-        if type(obj) ~= "table" then return false end
-        local rp = rawget(obj, "recoilPattern")
-        if type(rp) ~= "table" or #rp == 0 then return false end
-        if type(rawget(obj, "settings")) ~= "table" then return false end
-        if rawget(obj, "gunTool") == nil then return false end
-        return true
-    end
-
     local SAFE_RECOIL = {1, 0, 0, 0.5, 1}
 
     local function clearOne(obj)
         local rp = rawget(obj, "recoilPattern")
-        if type(rp) ~= "table" then return false end
+        if type(rp) ~= "table" then return end
         for i = #rp, 1, -1 do rp[i] = nil end
         rp[1] = {table.unpack(SAFE_RECOIL)}
         if rawget(obj, "curshots") ~= nil then obj.curshots = 0 end
-        return true
     end
 
-    local function scanWeapons()
-        for _, obj in pairs(getgc(true)) do
-            if looksLikeWeapon(obj) then cachedTables[obj] = true end
-        end
+    -- вызывается из общего rescan
+    local function tryRecoilFromObj(obj)
+        if type(obj) ~= "table" then return end
+        local rp = rawget(obj, "recoilPattern")
+        if type(rp) ~= "table" or #rp == 0 then return end
+        if type(rawget(obj, "settings")) ~= "table" then return end
+        if rawget(obj, "gunTool") == nil then return end
+        REG.recoilTables[obj] = true
+        clearOne(obj)
     end
 
-    local function clearRecoil()
-        if getgenv().NoRecoil_Enabled == false then return end
-        for obj in pairs(cachedTables) do
-            if type(obj) == "table" then clearOne(obj)
-            else cachedTables[obj] = nil end
-        end
-        if next(cachedTables) == nil then
-            scanWeapons()
-            for obj in pairs(cachedTables) do clearOne(obj) end
-        end
-    end
+    _G.__vanta_tryRecoil = tryRecoilFromObj
 
-    local function toolHash(char)
-        if not char then return 0 end
-        local h = 0
-        for _, c in pairs(char:GetChildren()) do
-            if c:IsA("Tool") then h += 1 end
-        end
-        local bp = lp:FindFirstChildOfClass("Backpack")
-        if bp then
-            for _, c in pairs(bp:GetChildren()) do
-                if c:IsA("Tool") then h += 1 end
-            end
-        end
-        return h
-    end
-
-    if lp.Character then
-        lp.Character.ChildAdded:Connect(function()
-            task.wait(0.3); cachedTables = {}; scanWeapons()
-        end)
-    end
-    lp.CharacterAdded:Connect(function()
-        task.wait(1); cachedTables = {}; scanWeapons()
-    end)
-
+    -- периодически чистим уже известные таблицы
     task.spawn(function()
         while true do
-            task.wait(3)
-            local h = toolHash(lp.Character)
-            if h ~= lastToolHash then
-                lastToolHash = h
-                cachedTables = {}
-                scanWeapons()
+            task.wait(1)
+            if getgenv().NoRecoil_Enabled ~= false then
+                for obj in pairs(REG.recoilTables) do
+                    if type(obj) == "table" then clearOne(obj)
+                    else REG.recoilTables[obj] = nil end
+                end
             end
-            pcall(clearRecoil)
         end
     end)
-
-    task.wait(1)
-    scanWeapons()
-    clearRecoil()
     print("[VANTA] norecoil loaded")
 end
 
 -- ============================================================
--- 6. RAPID FIRE
+-- 7. RAPID FIRE — только через общий rescan
 -- ============================================================
 do
-    local function patchSettings(t)
-        if type(t) ~= "table" then return end
+    local function patch(t)
         local rate = getgenv().RapidFire_Rate or 0.03
         for k in pairs(t) do
             if tostring(k):lower() == "firerate" then t[k] = rate end
         end
     end
 
-    local function scanSettings()
-        if getgenv().RapidFire_Enabled == false then return end
-        for _, obj in pairs(getgc(true)) do
-            if type(obj) ~= "table" then continue end
-            local hasFR, hasDmg, hasFM = false, false, false
-            for k in pairs(obj) do
-                local n = tostring(k):lower()
-                if n == "firerate" then hasFR = true end
-                if n == "damage"   then hasDmg = true end
-                if n == "firemode" then hasFM  = true end
-            end
-            if hasFR and hasDmg and hasFM then patchSettings(obj) end
+    local function tryRapidFromObj(obj)
+        if type(obj) ~= "table" then return end
+        local hasFR, hasDmg, hasFM = false, false, false
+        for k in pairs(obj) do
+            local n = tostring(k):lower()
+            if n == "firerate" then hasFR = true end
+            if n == "damage"   then hasDmg = true end
+            if n == "firemode" then hasFM  = true end
+        end
+        if hasFR and hasDmg and hasFM then
+            REG.rapidSettings[obj] = true
+            patch(obj)
         end
     end
 
-    scanSettings()
-
-    local function onTool(child)
-        if child:IsA("Tool") then task.wait(0.5); scanSettings() end
-    end
-    if lp.Character then lp.Character.ChildAdded:Connect(onTool) end
-    if lp.Backpack  then lp.Backpack.ChildAdded:Connect(onTool) end
-    lp.CharacterAdded:Connect(function()
-        task.wait(0.5); scanSettings()
-    end)
-    lp.ChildAdded:Connect(function(child)
-        if child.Name == "Backpack" then child.ChildAdded:Connect(onTool) end
-    end)
+    _G.__vanta_tryRapid = tryRapidFromObj
 
     task.spawn(function()
-        while true do task.wait(10); pcall(scanSettings) end
+        while true do
+            task.wait(5)
+            if getgenv().RapidFire_Enabled ~= false then
+                for obj in pairs(REG.rapidSettings) do
+                    if type(obj) == "table" then patch(obj)
+                    else REG.rapidSettings[obj] = nil end
+                end
+            end
+        end
     end)
     print("[VANTA] rapidfire loaded")
 end
 
 -- ============================================================
--- 7. HITMARKER + KILL EFFECT
+-- 8. HITMARKER + KILL EFFECT — через общий rescan
 -- ============================================================
 do
     local lines = {}
@@ -912,7 +834,7 @@ do
         end
     end)
 
-    local hookedCasters, lastHit = {}, 0
+    local lastHit = 0
 
     local function isEnemyChar(char)
         local plr = Players:GetPlayerFromCharacter(char)
@@ -921,45 +843,34 @@ do
         return plr.Team ~= lp.Team
     end
 
-    local function hookAll()
-        for _, obj in pairs(getgc(true)) do
-            if type(obj) ~= "function" then continue end
-            local ok, ups = pcall(debug.getupvalues, obj)
-            if not ok or not ups then continue end
-            for _, v in pairs(ups) do
-                if type(v) == "table" and rawget(v, "caster") then
-                    local caster = rawget(v, "caster")
-                    if not hookedCasters[caster] and caster.RayHit then
-                        hookedCasters[caster] = true
-                        caster.RayHit:Connect(function(_, rayResult)
-                            if not rayResult or not rayResult.Instance then return end
-                            local hitPart = rayResult.Instance
-                            local char = hitPart:FindFirstAncestorWhichIsA("Model")
-                            if not char then return end
-                            local hum = char:FindFirstChildOfClass("Humanoid")
-                            if not hum or not isEnemyChar(char) then return end
-                            local now = tick()
-                            if now - lastHit < 0.05 then return end
-                            lastHit = now
-                            ShowHitmarker(hitPart.Name == "Head", hum.Health <= 0)
-                            if hum.Health <= 0 then triggerKillEffect() end
-                        end)
-                    end
-                end
-            end
-        end
+    local function tryHitHooksFromObj(obj)
+        if type(obj) ~= "table" then return end
+        local caster = rawget(obj, "caster")
+        if not caster then return end
+        if REG.hitHookedCasters[caster] then return end
+        if not caster.RayHit then return end
+        REG.hitHookedCasters[caster] = true
+        caster.RayHit:Connect(function(_, rayResult)
+            if not rayResult or not rayResult.Instance then return end
+            local hitPart = rayResult.Instance
+            local char = hitPart:FindFirstAncestorWhichIsA("Model")
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not hum or not isEnemyChar(char) then return end
+            local now = tick()
+            if now - lastHit < 0.05 then return end
+            lastHit = now
+            ShowHitmarker(hitPart.Name == "Head", hum.Health <= 0)
+            if hum.Health <= 0 then triggerKillEffect() end
+        end)
     end
 
-    task.spawn(function()
-        while true do task.wait(3); pcall(hookAll) end
-    end)
-    task.wait(1)
-    hookAll()
+    _G.__vanta_tryHitHooks = tryHitHooksFromObj
     print("[VANTA] hitmarker + kill effect loaded")
 end
 
 -- ============================================================
--- 8. NO FALL DAMAGE
+-- 9. NO FALL DAMAGE
 -- ============================================================
 do
     local disabledChars = {}
@@ -989,23 +900,11 @@ do
 end
 
 -- ============================================================
--- 9. INSTANT RELOAD
+-- 10. INSTANT RELOAD — через общий rescan
 -- ============================================================
 do
-    local gunInstances = {}
     local lastReload = 0
     local reloadingNow = false
-
-    local function findGuns()
-        for _, obj in pairs(getgc(true)) do
-            if type(obj) ~= "table" then continue end
-            local settings = rawget(obj, "settings")
-            local gunTool  = rawget(obj, "gunTool")
-            if type(settings) == "table" and typeof(gunTool) == "Instance" then
-                gunInstances[obj] = true
-            end
-        end
-    end
 
     local function getReloadMethod(gun)
         local mt = getmetatable(gun)
@@ -1016,52 +915,56 @@ do
         return rawget(gun, "Reload")
     end
 
-    local function instantReload()
-        if getgenv().InstantReload_Enabled == false or reloadingNow then return end
-        local now = tick()
-        if now - lastReload < 0.2 then return end
-        for gun in pairs(gunInstances) do
-            local settings = rawget(gun, "settings")
-            local gunTool  = rawget(gun, "gunTool")
-            if type(settings) ~= "table" or typeof(gunTool) ~= "Instance" then
-                gunInstances[gun] = nil
-                continue
-            end
-            local mag = gunTool:GetAttribute("CurrentMagazineCount") or settings.CurrentMagazineCount
-            if type(mag) ~= "number" then continue end
-            if mag <= 1 and not gun.reloading and not gun.unloading then
-                local reloadFn = getReloadMethod(gun)
-                if reloadFn then
-                    lastReload = now
-                    reloadingNow = true
-                    task.spawn(function()
-                        local wasEquipping = gun.equipping
-                        gun.equipping = false
-                        pcall(reloadFn, gun)
-                        gun.equipping = wasEquipping
-                        task.wait(2)
-                        reloadingNow = false
-                    end)
-                end
-            end
+    local function tryGunFromObj(obj)
+        if type(obj) ~= "table" then return end
+        local settings = rawget(obj, "settings")
+        local gunTool  = rawget(obj, "gunTool")
+        if type(settings) == "table" and typeof(gunTool) == "Instance" then
+            REG.gunInstances[obj] = true
         end
     end
 
-    findGuns()
-    lp.CharacterAdded:Connect(function()
-        task.wait(0.5); gunInstances = {}; findGuns()
-    end)
+    _G.__vanta_tryGun = tryGunFromObj
+
     task.spawn(function()
-        while true do task.wait(0.2); pcall(instantReload) end
-    end)
-    task.spawn(function()
-        while true do task.wait(5); pcall(findGuns) end
+        while true do
+            task.wait(0.25)
+            if getgenv().InstantReload_Enabled ~= false and not reloadingNow then
+                local now = tick()
+                if now - lastReload >= 0.2 then
+                    for gun in pairs(REG.gunInstances) do
+                        local settings = rawget(gun, "settings")
+                        local gunTool  = rawget(gun, "gunTool")
+                        if type(settings) ~= "table" or typeof(gunTool) ~= "Instance" then
+                            REG.gunInstances[gun] = nil
+                            continue
+                        end
+                        local mag = gunTool:GetAttribute("CurrentMagazineCount") or settings.CurrentMagazineCount
+                        if type(mag) == "number" and mag <= 1 and not gun.reloading and not gun.unloading then
+                            local reloadFn = getReloadMethod(gun)
+                            if reloadFn then
+                                lastReload = now
+                                reloadingNow = true
+                                task.spawn(function()
+                                    local wasEquipping = gun.equipping
+                                    gun.equipping = false
+                                    pcall(reloadFn, gun)
+                                    gun.equipping = wasEquipping
+                                    task.wait(2)
+                                    reloadingNow = false
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end)
     print("[VANTA] instant reload loaded")
 end
 
 -- ============================================================
--- 10. ANTI-FLASH
+-- 11. ANTI-FLASH
 -- ============================================================
 do
     local function tryHide(obj)
@@ -1085,20 +988,14 @@ do
             end
         end
     end)
-
     print("[VANTA] anti-flash loaded")
 end
 
 -- ============================================================
--- 11. WEAPON INFO
+-- 12. WEAPON INFO — 10 Hz
 -- ============================================================
 do
     local weaponTexts = {}
-
-    local function isEnemy(plr)
-        if not lp.Team or not plr.Team then return true end
-        return plr.Team ~= lp.Team
-    end
 
     local function createText(plr)
         if weaponTexts[plr] then return weaponTexts[plr] end
@@ -1124,7 +1021,7 @@ do
             if not root then text.Visible = false continue end
             local dist = (Camera.CFrame.Position - root.Position).Magnitude
             if dist > 300 then text.Visible = false continue end
-            local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 2, 0))
+            local screenPos, onScreen = Camera.WorldToViewportPoint(Camera, root.Position + Vector3.new(0, 2, 0))
             if not onScreen or screenPos.Z < 0 then text.Visible = false continue end
             local tool = char:FindFirstChildOfClass("Tool")
             if not tool then text.Visible = false continue end
@@ -1155,11 +1052,78 @@ do
 end
 
 -- ============================================================
+-- ОБЩИЙ RESCAN — один getgc на все модули
+-- ============================================================
+do
+    -- триггер немедленного rescan (при смене Tool)
+    local rescanNow = false
+    local function triggerRescan()
+        rescanNow = true
+    end
+
+    local function onToolChanged(child)
+        if child:IsA("Tool") then
+            task.wait(0.3)
+            triggerRescan()
+        end
+    end
+
+    if lp.Character then
+        lp.Character.ChildAdded:Connect(onToolChanged)
+        lp.Character.ChildRemoved:Connect(onToolChanged)
+    end
+    if lp.Backpack then
+        lp.Backpack.ChildAdded:Connect(onToolChanged)
+    end
+    lp.CharacterAdded:Connect(function(char)
+        char.ChildAdded:Connect(onToolChanged)
+        char.ChildRemoved:Connect(onToolChanged)
+        task.wait(1)
+        triggerRescan()
+    end)
+    lp.ChildAdded:Connect(function(child)
+        if child.Name == "Backpack" then
+            child.ChildAdded:Connect(onToolChanged)
+        end
+    end)
+
+    -- основной цикл rescan
+    task.spawn(function()
+        -- первый проход сразу
+        local function doRescan()
+            bench("rescan", function()
+                for _, obj in pairs(getgc(true)) do
+                    if _G.__vanta_tryHookCaster then pcall(_G.__vanta_tryHookCaster, obj) end
+                    if _G.__vanta_tryRecoil     then pcall(_G.__vanta_tryRecoil,     obj) end
+                    if _G.__vanta_tryRapid      then pcall(_G.__vanta_tryRapid,      obj) end
+                    if _G.__vanta_tryGun        then pcall(_G.__vanta_tryGun,        obj) end
+                    if _G.__vanta_tryHitHooks   then pcall(_G.__vanta_tryHitHooks,   obj) end
+                end
+            end)
+        end
+
+        doRescan()
+        print("[VANTA] initial rescan done")
+
+        while true do
+            task.wait(5)
+            if rescanNow then
+                rescanNow = false
+                doRescan()
+            else
+                doRescan()
+            end
+        end
+    end)
+    print("[VANTA] unified rescan loaded")
+end
+
+-- ============================================================
 -- WATERMARK
 -- ============================================================
 do
     local watermark = Drawing.new("Text")
-    watermark.Text = "VANTA v10"
+    watermark.Text = "VANTA v10.1"
     watermark.Size = 14
     watermark.Color = Color3.fromRGB(255, 255, 255)
     watermark.Outline = true
@@ -1168,9 +1132,9 @@ do
     watermark.Center = false
     RunService.RenderStepped:Connect(function()
         local vp = Camera.ViewportSize
-        watermark.Position = Vector2.new(vp.X - 80, 10)
+        watermark.Position = Vector2.new(vp.X - 90, 10)
     end)
     print("[VANTA] watermark loaded")
 end
 
-print("[VANTA] all loaded v10")
+print("[VANTA] all loaded v10.1")
