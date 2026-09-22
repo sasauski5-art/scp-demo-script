@@ -192,7 +192,7 @@ do
 end
 
 -- ============================================================
--- 2. NO FOG
+-- 2. NO FOG — с pcall
 -- ============================================================
 do
     local function applyNoFog()
@@ -461,7 +461,7 @@ do
 end
 
 -- ============================================================
--- 4. ESP ИГРОКОВ
+-- 4. ESP ИГРОКОВ — ИСПРАВЛЕН
 -- ============================================================
 do
     local espCache = {}
@@ -576,14 +576,14 @@ do
             if getgenv().ESP_Box ~= false then
                 local cl = math.floor(width * 0.25)
                 local cs = math.floor(height * 0.25)
-                data.C1.From=Vector2.new(x,y);     data.C1.To=Vector2.new(x+cl,y)
-                data.C2.From=Vector2.new(x,y);     data.C2.To=Vector2.new(x,y+cs)
-                data.C3.From=Vector2.new(x+w,y);   data.C3.To=Vector2.new(x+w-cl,y)
-                data.C4.From=Vector2.new(x+w,y);   data.C4.To=Vector2.new(x+w,y+cs)
-                data.L1.From=Vector2.new(x,y+h);   data.L1.To=Vector2.new(x+cl,y+h)
-                data.L2.From=Vector2.new(x,y+h);   data.L2.To=Vector2.new(x,y+h-cs)
-                data.L3.From=Vector2.new(x+w,y+h); data.L3.To=Vector2.new(x+w-cl,y+h)
-                data.L4.From=Vector2.new(x+w,y+h); data.L4.To=Vector2.new(x+w,y+h-cs)
+                data.C1.From=Vector2.new(x,y);               data.C1.To=Vector2.new(x+cl,y)
+                data.C2.From=Vector2.new(x,y);               data.C2.To=Vector2.new(x,y+cs)
+                data.C3.From=Vector2.new(x+width,y);         data.C3.To=Vector2.new(x+width-cl,y)
+                data.C4.From=Vector2.new(x+width,y);         data.C4.To=Vector2.new(x+width,y+cs)
+                data.L1.From=Vector2.new(x,y+height);        data.L1.To=Vector2.new(x+cl,y+height)
+                data.L2.From=Vector2.new(x,y+height);        data.L2.To=Vector2.new(x,y+height-cs)
+                data.L3.From=Vector2.new(x+width,y+height);  data.L3.To=Vector2.new(x+width-cl,y+height)
+                data.L4.From=Vector2.new(x+width,y+height);  data.L4.To=Vector2.new(x+width,y+height-cs)
                 for _, k in ipairs({"L1","L2","L3","L4","C1","C2","C3","C4"}) do
                     data[k].Visible = true
                 end
